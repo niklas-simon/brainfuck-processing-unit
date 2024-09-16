@@ -43,3 +43,16 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
 - [ ] Entwicklung Interpreter PCB
 - [ ] Entwicklung I/O-Manager
 - [ ] Entwicklung Digital Twin
+## Spezifikationen
+### Programmierung
+- 4 Pin Port
+    1. Write Enable
+    2. Clock
+    3. Data
+    4. Ground
+- Ablauf
+    1. Write Enable -> HIGH
+    2. Bit in Data laden
+    3. Clock -> HIGH -> LOW
+    4. für jedes Bit zurück zu 2.
+    5. Write Enable -> LOW
