@@ -21,18 +21,13 @@
     - `ENABLED`
         - `IR = D + 1`
         - `DR = D - 1`
-        - `OE == TRUE` `OE = FALSE`
         - `*PC == ']' && D != NULL` `PC = *JP`
         - `*PC != ']' || D == NULL` `PC++`
     - `STARTUP` State `ENABLED`
     - `JUMPING`
         - `*PC != ']'` `PC++`
-    - `INPUT`
-        - `IE == TRUE` State `ENABLED`
-        - `IE == FALSE` NOP
-    - `OUTPUT`
-        - `OR == TRUE` State `ENABLED`
-        - `OR == FALSE` NOP
+    - `INPUT` NOP
+    - `OUTPUT` NOP
 - fallende Flanke
     - `ENABLED`
         - `>` `DP++`
@@ -41,13 +36,9 @@
         - `-` `D = DR`
         - `.`
             - `OUT = D`
-            - `OR == FALSE` State `OUTPUT`
-            - `OR == TRUE` `OE = TRUE`
+            - State `OUTPUT`
         - `,` 
-            - `IE == TRUE`
-                - `D = IN`
-                - `IE = FALSE`
-            - `IE == FALSE` State `INPUT`
+            - State `INPUT`
         - `[`
             - `D == 0`
                 - `JP++`
@@ -62,5 +53,12 @@
     - `STARTUP` NOP
     - `JUMPING`
         - `*PC == ']'` State `ENABLED`
-    - `INPUT` NOP
-    - `OUTPUT` NOP
+    - `INPUT`
+        - `IE == TRUE`
+            - State `ENABLED`
+            - `D = IN`
+            - `IE = FALSE`
+    - `OUTPUT`
+        - `OE == TRUE`
+            - State `ENABLED`
+            - `OE = FALSE`
