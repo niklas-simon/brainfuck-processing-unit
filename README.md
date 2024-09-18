@@ -62,3 +62,17 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     2. Clock
     3. Reset
     4. Ground
+### I/O
+- 12 Pin Port
+    1. Direction (1: Input, 0: Output)
+    2. Clock
+    3. Ready for Output
+    4. I/O 0
+    5. I/O 1
+    6. I/O 2
+    7. I/O 3
+    8. I/O 4
+    9. I/O 5
+    10. I/O 6
+    11. I/O 7
+    12. Ground
