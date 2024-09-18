@@ -19,13 +19,13 @@
 ## Ablauf
 - steigende Flanke
     - `ENABLED`
-        - `PC++`
         - `IR = D + 1`
         - `DR = D - 1`
         - `OE == TRUE` `OE = FALSE`
+        - `*PC == ']' && D != NULL` `PC = *JP`
+        - `*PC != ']' || D == NULL` `PC++`
     - `STARTUP` State `ENABLED`
     - `JUMPING`
-        - `*PC == ']'` State `ENABLED`
         - `*PC != ']'` `PC++`
     - `INPUT`
         - `IE == TRUE` State `ENABLED`
@@ -58,9 +58,9 @@
         - `]`
             - `D == 0` `JP--`
             - `D != 0`
-                - `PC = *(JP - 1)`
                 - `JP--`
     - `STARTUP` NOP
-    - `JUMPING` NOP
+    - `JUMPING`
+        - `*PC == ']'` State `ENABLED`
     - `INPUT` NOP
     - `OUTPUT` NOP
