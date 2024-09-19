@@ -64,9 +64,9 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     4. Ground
 ### I/O
 - 12 Pin Port
-    1. Direction (1: Input, 0: Output)
-    2. Clock
-    3. Ready for Output
+    1. Input Await
+    2. Push Input / Output Ready
+    3. Output Confirmed
     4. I/O 0
     5. I/O 1
     6. I/O 2
@@ -76,3 +76,13 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     10. I/O 6
     11. I/O 7
     12. Ground
+- Ablauf
+    - Input
+        1. **Interpreter**: Input Await -> HIGH
+        2. **External**: I/O-Pins setzen
+        3. **External**: Push Input -> HIGH -> LOW
+    - Output
+        1. **Interpreter**: I/O-Pins setzen
+        1. **Interpreter**: Output Ready -> HIGH
+        2. **External**: I/O-Pins verarbeiten
+        3. **External**: Output Confirmed -> HIGH -> LOW

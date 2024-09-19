@@ -6,9 +6,10 @@
 - `DR` Decrement Register
 - `OUT` Ouput Register
 - `OE` Output Enable
-- `OR` Ready to Receive Output
+- `OC` Output Confirmed
 - `IN` Input Register
 - `IE` Input Enable
+- `PI` Push Input
 - `JP` Jump Pointer
 ## States
 - `ENABLED` Interpreter ist aktiv
@@ -62,3 +63,10 @@
         - `OE == TRUE`
             - State `ENABLED`
             - `OE = FALSE`
+- Asynchron
+    - Reset
+    - `OUTPUT`
+        - `OC == TRUE` `OE = TRUE`
+        - `OR = TRUE`
+    - `INPUT`
+        - `PI == TRUE` `IE = TRUE`
