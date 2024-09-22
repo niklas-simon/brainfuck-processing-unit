@@ -11,6 +11,7 @@
 - `IE` Input Enable
 - `PI` Push Input
 - `JP` Jump Pointer
+- `JS` Jump Snapshot
 ## States
 - `ENABLED` Interpreter ist aktiv
 - `STARTUP` Programm beginnt auf erster fallender Flanke. Falls davor eine steigende ist, darf diese nicht abgehandelt werden
@@ -22,11 +23,11 @@
     - `ENABLED`
         - `IR = D + 1`
         - `DR = D - 1`
-        - `*PC == ']' && D != NULL` `PC = *JP`
-        - `*PC != ']' || D == NULL` `PC++`
-    - `STARTUP` State `ENABLED`
+        - `] && D != 0` `PC = *JP`
+        - `] || D == 0` `PC++`
+    - `STARTUP` State `ENABLED` after another cycle
     - `JUMPING`
-        - `*PC != ']'` `PC++`
+        - `]` `PC++`
     - `INPUT` NOP
     - `OUTPUT` NOP
 - fallende Flanke
@@ -41,19 +42,19 @@
         - `,` 
             - State `INPUT`
         - `[`
+            - `JP++`
             - `D == 0`
-                - `JP++`
+                - `JS = JP + 1`
                 - State `JUMPING`
-            - `D != 0`
-                - `*JP = PC`
-                - `JP++`
+            - `D != 0` `*JP = PC`
         - `]`
-            - `D == 0` `JP--`
-            - `D != 0`
-                - `JP--`
+            - `JP--`
     - `STARTUP` NOP
     - `JUMPING`
-        - `*PC == ']'` State `ENABLED`
+        - `[` `JP++`
+        - `]`
+            - `JP--`
+            - `JP == JS` State `ENABLED`
     - `INPUT`
         - `IE == TRUE`
             - State `ENABLED`
