@@ -15,7 +15,7 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
         - Richtung durch `2.` vorgegeben
     2. Warten auf Input
         - 1: Input kann durch Pulse auf `3.` übergeben werden
-        - 0: Sollte `3.``HIGH` sein, kann Output gelesen werden
+        - 0: Sollte `3.` `HIGH` sein, kann Output gelesen werden
     3. Push Input / Output bereit
         - Funktion wird durch `2.` bestimmt
     4. Output Confirmed
