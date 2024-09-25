@@ -1,0 +1,73 @@
+# Interpreter
+## Abkürzungen
+- `D` Data
+- `DP` Data Pointer
+- `IR` Increment Register
+- `DR` Decrement Register
+- `OUT` Ouput Register
+- `OE` Output Enable
+- `OC` Output Confirmed
+- `IN` Input Register
+- `IE` Input Enable
+- `PI` Push Input
+- `JP` Jump Pointer
+- `JS` Jump Snapshot
+## States
+- `ENABLED` Interpreter ist aktiv
+- `STARTUP` Programm beginnt auf erster fallender Flanke. Falls davor eine steigende ist, darf diese nicht abgehandelt werden
+- `JUMPING` Interpreter springt auf nächste ']'
+- `INPUT` Interpreter wartet auf Input
+- `OUTPUT` Interpreter wartet auf Berechtigung, Output zu senden
+## Ablauf
+- steigende Flanke
+    - `ENABLED`
+        - `IR = D + 1`
+        - `DR = D - 1`
+        - `] && D != 0` `PC = *JP`
+        - `] || D == 0` `PC++`
+    - `STARTUP` State `ENABLED` after another cycle
+    - `JUMPING`
+        - `]` `PC++`
+    - `INPUT` NOP
+    - `OUTPUT` NOP
+- fallende Flanke
+    - `ENABLED`
+        - `>` `DP++`
+        - `<` `DP--`
+        - `+` `D = IR`
+        - `-` `D = DR`
+        - `.`
+            - `OUT = D`
+            - State `OUTPUT`
+        - `,` 
+            - State `INPUT`
+        - `[`
+            - `JP++`
+            - `D == 0`
+                - `JS = JP + 1`
+                - State `JUMPING`
+            - `D != 0` `*JP = PC`
+        - `]`
+            - `JP--`
+    - `STARTUP` NOP
+    - `JUMPING`
+        - `[` `JP++`
+        - `]`
+            - `JP--`
+            - `JP == JS` State `ENABLED`
+    - `INPUT`
+        - `IE == TRUE`
+            - State `ENABLED`
+            - `D = IN`
+            - `IE = FALSE`
+    - `OUTPUT`
+        - `OE == TRUE`
+            - State `ENABLED`
+            - `OE = FALSE`
+- Asynchron
+    - Reset
+    - `OUTPUT`
+        - `OC == TRUE` `OE = TRUE`
+        - `OR = TRUE`
+    - `INPUT`
+        - `PI == TRUE` `IE = TRUE`

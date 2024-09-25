@@ -9,16 +9,25 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     - Zähler
     - Register
     - Etc.
--	I/O durch 10-pin-Verbindung
-    - 8-bit I/O
-        - MSB 0: ASCII, 1: reserviert (evtl. 7 Pins)
-    - 1 Bit Richtung (1: Input, 0: Output)
-    - 1 Bit Clock
+-	I/O durch 12-pin-Verbindung
+    1. 8-bit I/O
+        - MSB 0: ASCII, 1: reserviert
+        - Richtung durch `2.` vorgegeben
+    2. Warten auf Input
+        - 1: Input kann durch Pulse auf `3.` übergeben werden
+        - 0: Sollte `3.``HIGH` sein, kann Output gelesen werden
+    3. Push Input / Output bereit
+        - Funktion wird durch `2.` bestimmt
+    4. Output Confirmed
+        - Durch Pulse kann das Lesen des Outputs bestätigt werden und der Interpreter wird fortgesetzt
 - Clock durch Potentiometer o.ä. einstellbar
 - Programmierung EEPROM durch Raspberry PI (welcher auch Digital Twin steuert)
 ### I/O Management & Digital Twin
 - Raspberry PI
-- Verwaltet 18-pin-Verbindung des Interpreters
+- Verwaltet Verbindungen zum Interpreter
+    - 12 Pin I/O
+    - 4 Pin ROM-Programmierung
+    - 4 Pin Steuerport
 - Zeigt Output des Interpreters
 - Gibt Tastatureingaben als Input an Interpreter
 - Zeigt Interpreter-Schaltung in Simulation
@@ -34,6 +43,7 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     - Etc.
 ## Entwicklungsschritte
 - [x] Konzepterstellung Interpreter in Logisim
+- [ ] Entwicklung Schaltkreis-Diagramm zur Aufstellung einer Teilliste
 - [ ] Aufbau aller von Logisim bereitgestellten Komponenten auf Breadboard
     - [ ] RAM (SRAM)
     - [ ] Zähler
@@ -62,3 +72,27 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     2. Clock
     3. Reset
     4. Ground
+### I/O
+- 12 Pin Port
+    1. Input Await
+    2. Push Input / Output Ready
+    3. Output Confirmed
+    4. I/O 0
+    5. I/O 1
+    6. I/O 2
+    7. I/O 3
+    8. I/O 4
+    9. I/O 5
+    10. I/O 6
+    11. I/O 7
+    12. Ground
+- Ablauf
+    - Input
+        1. **Interpreter**: Input Await -> HIGH
+        2. **External**: I/O-Pins setzen
+        3. **External**: Push Input -> HIGH -> LOW
+    - Output
+        1. **Interpreter**: I/O-Pins setzen
+        1. **Interpreter**: Output Ready -> HIGH
+        2. **External**: I/O-Pins verarbeiten
+        3. **External**: Output Confirmed -> HIGH -> LOW
