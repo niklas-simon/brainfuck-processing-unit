@@ -25,7 +25,8 @@
         - `DR = D - 1`
         - `] && D != 0` `PC = *JP`
         - `] || D == 0` `PC++`
-    - `STARTUP` State `ENABLED` after another cycle
+    - `STARTUP`
+        - `Max(DP)` State `ENABLED`
     - `JUMPING`
         - `]` `PC++`
     - `INPUT` NOP
@@ -49,7 +50,9 @@
             - `D != 0` `*JP = PC`
         - `]`
             - `JP--`
-    - `STARTUP` NOP
+    - `STARTUP`
+        - `D = 0`
+        - `DP++`
     - `JUMPING`
         - `[` `JP++`
         - `]`
