@@ -1,0 +1,143 @@
+openapi: 3.1.0
+info:
+  title: Brainfuck Interpreter
+  version: 1.0.0
+servers:
+  - url: https://example.com/api/bf
+paths:
+  /state:
+    get:
+      summary: get current interpreter status
+      description: get data describing the current internal state of the interpreter
+      operationId: getState
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/State'
+    post:
+      summary: subsribe to state changes
+      description: receive events when new state should be fetched
+      operationId: subscribeState
+      responses:
+        default:
+          description: example of defining events for sse
+          content:
+            application/json: 
+              schema:
+                type: object
+                x-events:
+                  added:
+                    type: object
+                    properties:
+                      message:
+                        type: string
+                      createdAt:
+                        type: string
+                        format: date-time
+                  updated:
+                    type: object
+                    properties:
+                      previous:
+                        type: string
+                      newValue:
+                        type: string
+                      updatedAt:
+                        type: string
+                        format: date-time
+  '/code':
+    get:
+      summary: view current code
+      description: get code that is currently being interpreted
+      operationId: getCode
+      responses:
+        200:
+          description: the currently running code
+          content:
+            text/plain:
+              schema:
+                type: string
+    put:
+      summary: set current code
+      description: if the interpreter is idle at the moment, the code is replaced
+      operationId: putCode
+      requestBody: 
+        description: the new code
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        200:
+          description: new code was set successfully
+        424:
+          description: the interpreter is currently running
+  '/run':
+    get:
+      summary: get current run information
+      responses:
+        200:
+          description: run info
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cycles:
+                    type: integer
+                  speed:
+                    type: string
+                    enum:
+                    - slow
+                    - fast
+                    - manual
+                  state:
+                    type: string
+                    enum:
+                    - initial
+                    - paused
+                    - running
+                    - finished
+                  input:
+                    type: string
+                  output:
+                    type: string
+                  progCount:
+                    type: integer
+    patch:
+      summary: set current information
+      description: start/pause the interpreter, set input
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                speed:
+                    type: string
+                    enum:
+                    - slow
+                    - fast
+                    - manual
+                state:
+                  type: string
+                  enum:
+                  - initial
+                  - paused
+                  - running
+                  - finished
+                input:
+                  type: string
+  '/run/step':
+    post:
+      summary: manually run steps
+      
+components:
+  schemas:
+    State:
+      type: object
+      properties:
+        example:
+          type: string
