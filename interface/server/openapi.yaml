@@ -3,55 +3,20 @@ info:
   title: Brainfuck Interpreter
   version: 1.0.0
 servers:
-  - url: https://example.com/api/bf
+  - url: https://example.com/bf-itp
+tags:
+  - name: /api/run
+    description: hardware interaction
+  - name: /api/sse
+    description: server-side events
 paths:
-  /state:
+  '/api/run/code':
     get:
-      summary: get current interpreter status
-      description: get data describing the current internal state of the interpreter
-      operationId: getState
-      responses:
-        '200':
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/State'
-    post:
-      summary: subsribe to state changes
-      description: receive events when new state should be fetched
-      operationId: subscribeState
-      responses:
-        default:
-          description: example of defining events for sse
-          content:
-            application/json: 
-              schema:
-                type: object
-                x-events:
-                  added:
-                    type: object
-                    properties:
-                      message:
-                        type: string
-                      createdAt:
-                        type: string
-                        format: date-time
-                  updated:
-                    type: object
-                    properties:
-                      previous:
-                        type: string
-                      newValue:
-                        type: string
-                      updatedAt:
-                        type: string
-                        format: date-time
-  '/code':
-    get:
-      summary: view current code
-      description: get code that is currently being interpreted
+      summary: get current code
+      description: get code of current bf program
       operationId: getCode
+      tags:
+      - '/api/run'
       responses:
         200:
           description: the currently running code
@@ -61,8 +26,10 @@ paths:
                 type: string
     put:
       summary: set current code
-      description: if the interpreter is idle at the moment, the code is replaced
-      operationId: putCode
+      description: set code of bf program if interpreter is idle
+      operationId: setCode
+      tags:
+      - '/api/run'
       requestBody: 
         description: the new code
         content:
@@ -74,70 +41,284 @@ paths:
           description: new code was set successfully
         424:
           description: the interpreter is currently running
-  '/run':
+  '/api/sse/code':
+    post:
+      summary: subscribe to code changes
+      description: sse endpoint for code changes
+      operationId: sseCode
+      tags:
+      - '/api/sse'
+      responses:
+        '200':
+          description: sse for code changes
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/SSE'
+  '/api/run/input':
     get:
-      summary: get current run information
+      summary: get current input
+      description: get input for current bf program
+      operationId: getInput
+      tags:
+      - '/api/run'
       responses:
         200:
-          description: run info
+          description: the current input
+          content:
+            text/plain:
+              schema:
+                type: string
+    put:
+      summary: set current input
+      description: set input for bf program. if interpreter is already running, input can only be appended to.
+      operationId: setInput
+      tags:
+      - '/api/run'
+      requestBody: 
+        description: the new input
+        content:
+          text/plain:
+            schema:
+              type: string
+      responses:
+        200:
+          description: new input was set successfully
+        424:
+          description: tried to change input while running
+  '/api/sse/input':
+    post:
+      summary: subscribe to input changes
+      description: sse endpoint for input changes
+      operationId: sseInput
+      tags:
+      - '/api/sse'
+      responses:
+        '200':
+          description: sse for input changes
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/SSE'
+  '/api/run/output':
+    get:
+      summary: get current output
+      description: get output from current program
+      operationId: getOutput
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: current output
+          content:
+            text/plain:
+              schema:
+                type: string
+  '/api/sse/output':
+    post:
+      summary: subscribe to output changes
+      description: sse endpoint for output changes
+      operationId: sseOutput
+      tags:
+      - '/api/sse'
+      responses:
+        '200':
+          description: sse for output changes
+          content:
+            application/json: 
+              schema:
+                $ref: '#/components/schemas/SSE'
+  '/api/run/state':
+    get:
+      summary: get current interpreter state
+      description: get state of hw interpreter via digital twin if it is running
+      operationId: getState
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: current interpreter state
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  cycles:
-                    type: integer
-                  speed:
-                    type: string
-                    enum:
-                    - slow
-                    - fast
-                    - manual
-                  state:
-                    type: string
-                    enum:
-                    - initial
-                    - paused
-                    - running
-                    - finished
-                  input:
-                    type: string
-                  output:
-                    type: string
-                  progCount:
-                    type: integer
-    patch:
-      summary: set current information
-      description: start/pause the interpreter, set input
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:
-                speed:
-                    type: string
-                    enum:
-                    - slow
-                    - fast
-                    - manual
-                state:
-                  type: string
-                  enum:
-                  - initial
-                  - paused
-                  - running
-                  - finished
-                input:
-                  type: string
-  '/run/step':
+                $ref: '#/components/schemas/State'
+        '404':
+          description: interpreter is currently idle
+  '/api/sse/state':
     post:
-      summary: manually run steps
-      
+      summary: subscribe to state changes
+      description: subscribe to sse for changes of interpreter state
+      operationId: sseState
+      tags:
+      - '/api/sse'
+      responses:
+        '200':
+          description: sse for state changes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSE'
+  '/api/run/speed':
+    get:
+      summary: get current speed
+      description: get speed currently set for interpreter
+      operationId: getSpeed
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: current speed
+          content:
+            application/json:
+              schema:
+                oneOf:
+                - type: number
+                - type: 'null'
+    put:
+      summary: set interpreter speed
+      description: set speed for interpreter to run automatically
+      operationId: setSpeed
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: speed set successfully
+    delete:
+      summary: pause interpreter
+      description: set interpreter to manual step-by-step execution
+      operationId: deleteSpeed
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: speed deleted successfully
+  '/api/sse/speed':
+    post:
+      summary: subscribe to speed changes
+      description: subscribe to sse for changes of interpreter speed
+      operationId: sseSpeed
+      tags:
+      - '/api/sse'
+      responses:
+        '200':
+          description: sse for speed changes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SSE'
+  '/api/run/start':
+    post:
+      summary: start interpreter run
+      description: if interpreter is in initial state, start a run
+      operationId: startRun
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: run started
+        '400':
+          description: interpreter was not in initial state
+  '/api/run/reset':
+    post:
+      summary: reset interpreter state
+      description: set interpreter to initial state, retaining input and code
+      operationId: resetRun
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: run reset
+  '/api/run/restart':
+    post:
+      summary: restart current program
+      description: if interpreter has finished, run the same program again
+      operationId: restartRun
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: run restartet
+        '400':
+          description: interpreter not finished yet
+  '/api/run/step':
+    post:
+      summary: run single step
+      description: if speed was set to manual, advance execution by one step
+      operationId: runStep
+      tags:
+      - '/api/run'
+      responses:
+        '200':
+          description: step run successfully
+        '400':
+          description: interpreter not running or speed not set to manual execution
+  '/examples':
+    get:
+      summary: get examples
+      description: get a list of examples 
+      operationId: listExamples
+      responses:
+        '200':
+          description: list of examples
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    name:
+                      type: string
+                    desc:
+                      type: string
+                    code:
+                      type: string
 components:
   schemas:
     State:
       type: object
       properties:
-        example:
-          type: string
+        tape:
+          type: array
+          items:
+            type: number
+        head:
+          type: number
+        pc:
+          type: number
+          description: program counter
+        ic:
+          type: number
+          description: input counter
+        jumping:
+          oneOf:
+          - type: 'null'
+          - type: 'number'
+        stack:
+          type: array
+          items:
+            type: number
+        cycles:
+          type: number
+    SSE:
+      type: object
+      description: representing server-side events
+      properties:
+        added:
+          type: object
+          properties:
+            message:
+              type: string
+            createdAt:
+              type: string
+              format: date-time
+        updated:
+          type: object
+          properties:
+            previous:
+              type: string
+            newValue:
+              type: string
+            updatedAt:
+              type: string
+              format: date-time

@@ -367,6 +367,7 @@ pub struct Run {
     stack: Vec<usize>,
     pub inp: Vec<u8>,
     out: Vec<u8>,
+    cycles: usize,
 }
 
 #[derive(Serialize)]
@@ -378,6 +379,7 @@ pub struct RunState {
     jumping: Option<usize>,
     stack: Vec<usize>,
     out: Vec<u8>,
+    cycles: usize,
 }
 
 impl Run {
@@ -392,6 +394,7 @@ impl Run {
             stack: Vec::new(),
             inp: inp.as_bytes().to_vec(),
             out: Vec::new(),
+            cycles: 0,
         }
     }
 
@@ -408,6 +411,7 @@ impl Run {
             jumping: self.jumping,
             stack: self.stack.clone(),
             out: self.out.clone(),
+            cycles: self.cycles,
         }
     }
 
@@ -419,6 +423,7 @@ impl Run {
     /// 
     /// returns true when finished
     pub fn step(&mut self) -> bool {
+        self.cycles += 1;
         if let Some(depth) = &mut self.jumping {
             match self.code[self.pc] {
                 BFCommand::LoopEnd => *depth -= 1,
