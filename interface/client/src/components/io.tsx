@@ -1,4 +1,5 @@
-import { Button, Textarea } from "@nextui-org/react";
+import { Button } from "@nextui-org/button";
+import { Textarea } from "@nextui-org/input";
 import { useState } from "react";
 
 export default function IO() {

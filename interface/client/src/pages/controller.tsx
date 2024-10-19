@@ -1,6 +1,6 @@
 import Controller from "@/components/controller";
 import DefaultLayout from "@/layouts/default";
-import { Card, CardBody } from "@nextui-org/react";
+import { Card, CardBody } from "@nextui-org/card";
 
 export default function ControllerPage() {
     return <DefaultLayout>

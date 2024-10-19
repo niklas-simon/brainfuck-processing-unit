@@ -1,5 +1,5 @@
-import { Divider } from "@nextui-org/react";
 import Cell from "./cell";
+import {Divider} from "@nextui-org/divider";
 
 export default function Tape({data, className}: {data: {address: number, value: string | number}[], className?: string}) {
     return <div className={className}> 

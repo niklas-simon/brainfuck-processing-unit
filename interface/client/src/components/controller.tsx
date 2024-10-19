@@ -1,4 +1,6 @@
-import { Button, ButtonGroup, Slider, Switch } from "@nextui-org/react";
+import { ButtonGroup, Button } from "@nextui-org/button";
+import { Slider } from "@nextui-org/slider";
+import { Switch } from "@nextui-org/switch";
 import { useState } from "react";
 import { Pause, Play, RefreshCcw, SkipForward } from "react-feather";
 

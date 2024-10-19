@@ -1,6 +1,6 @@
-import { Card, CardBody } from "@nextui-org/react";
 import { ChevronDown, ChevronUp } from "react-feather";
 import Tape from "./tape";
+import { Card, CardBody } from "@nextui-org/card";
 
 export default function Twin() {
     return <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden">

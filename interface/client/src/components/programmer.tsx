@@ -1,4 +1,6 @@
-import { Button, Dropdown, DropdownItem, DropdownMenu, DropdownTrigger, Textarea } from "@nextui-org/react";
+import { Button } from "@nextui-org/button";
+import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/dropdown";
+import { Textarea } from "@nextui-org/input";
 import { useState } from "react";
 
 const presets = [
