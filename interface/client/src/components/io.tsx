@@ -11,13 +11,15 @@ export default function IO() {
             className="font-mono" value={output} 
             placeholder="Output from the machine will be displayed here"/>
         <Textarea radius="none" label="Input"
-            placeholder="Input for the machine goes here" 
+            placeholder="Will be appended to the input queue upon pressing 'Send'" 
             className="font-mono"
             value={input} onChange={e => setInput(e.target.value)}/>
         <div className="flex flex-row gap-4 items-center">
             <Button variant="light" color="primary" className="w-min" onClick={() => {
-                setOutput(output + input + "\n");
                 setInput("");
+                window.dispatchEvent(new CustomEvent("sendInput", {
+                    detail: input
+                }))
             }}>Send</Button><Button variant="light" color="danger" className="w-min" onClick={() => {
                 setOutput("");
                 setInput("");

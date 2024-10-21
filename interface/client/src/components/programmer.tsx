@@ -19,13 +19,20 @@ const presets = [
 ]
 
 export default function Programmer() {
-    const [program, setProgram] = useState("");
+    const [program, setProgram] = useState(window.localStorage.getItem("program") || "");
+
+    const writeProgram = () => {
+        window.dispatchEvent(new CustomEvent("program", {
+            detail: program
+        }));
+        window.localStorage.setItem("program", program);
+    }
 
     return <div className="flex flex-col gap-4">
         <Textarea label="Program" placeholder=",[.,]" radius="none" className="font-mono"
             value={program} onChange={e => setProgram(e.target.value)}/>
         <div className="flex flex-row gap-4">
-            <Button color="primary" variant="light" className="w-min">Write</Button>
+            <Button color="primary" variant="light" className="w-min" onClick={writeProgram}>Write</Button>
             <Dropdown>
                 <DropdownTrigger>
                     <Button variant="light" color="secondary">
