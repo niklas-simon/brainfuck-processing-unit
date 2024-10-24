@@ -255,6 +255,12 @@ paths:
       operationId: stepItp
       tags:
       - '/api/ctrl'
+      requestBody:
+        description: the number of steps
+        content:
+          application/json:
+            schema:
+              type: number
       responses:
         '200':
           description: step executed

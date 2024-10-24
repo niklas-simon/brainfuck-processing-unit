@@ -171,8 +171,10 @@ pub fn disable_control() {
 #[post("/ctrl/start")]
 pub fn start() -> BFRes {
     let glob = GLOBAL_STATE.get().unwrap();
-    match *glob.state.write().unwrap() {
+    let mut state = glob.state.write().unwrap();
+    match *state {
         ItpState::Idle => {
+            drop(state);
             glob.send_hw(HWCmd::StartRun);
             Ok(())
         },
@@ -205,18 +207,23 @@ pub fn pause() -> BFRes {
     }
 }
 
-#[post("/ctrl/step")]
-pub fn step() -> BFRes {
+#[post("/ctrl/step", data = "<steps>")]
+pub fn step(steps: Option<String>) -> BFRes {
+    let steps: usize = steps.map(|n| n.parse().ok()).flatten().unwrap_or(1);
     let glob = GLOBAL_STATE.get().unwrap();
     match *glob.state.read().unwrap() {
         ItpState::Idle => {
             glob.send_hw(HWCmd::StartRunPaused);
-            glob.send_hw(HWCmd::ExecStep);
+            for _ in 0..steps {
+                glob.send_hw(HWCmd::ExecStep);
+            }
             Ok(())
         },
         ItpState::Running { ref paused, .. } => {
             if *paused {
-                glob.send_hw(HWCmd::ExecStep);
+                for _ in 0..steps {
+                    glob.send_hw(HWCmd::ExecStep);
+                }
                 Ok(())
             } else {
                 Err(BFError::ItpRunning)

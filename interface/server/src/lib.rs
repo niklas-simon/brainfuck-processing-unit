@@ -457,14 +457,15 @@ impl Run {
             if *depth == 0 {
                 self.jumping = None;
             }
-            return false;
+            self.pc += 1;
+            return self.pc == self.code.len();
         }
 
         match self.code[self.pc] {
             BFCommand::Inc => self.tape[self.head] = self.tape[self.head].wrapping_add(1),
             BFCommand::Dec => self.tape[self.head] = self.tape[self.head].wrapping_sub(1),
             BFCommand::Left => self.head = (self.head.wrapping_sub(1)) % TAPE_LEN,
-            BFCommand::Right => self.head = (self.head.wrapping_sub(1)) % TAPE_LEN,
+            BFCommand::Right => self.head = (self.head.wrapping_add(1)) % TAPE_LEN,
             BFCommand::In => {
                 if self.ic < self.inp.len() {
                     self.tape[self.head] = self.inp[self.ic];
@@ -481,9 +482,11 @@ impl Run {
             },
             BFCommand::LoopEnd => {
                 // probably correct behaviour for incorrect code
-                let back_addr = self.stack.pop().unwrap_or(0);
+                let back_addr = self.stack.last().unwrap_or(&0);
                 if self.tape[self.head] != 0 {
-                    self.pc = back_addr;
+                    self.pc = *back_addr;
+                } else {
+                    self.stack.pop();
                 }
             },
         }
@@ -507,5 +510,13 @@ mod test {
         test_arith_loop("[->>+++<<<+>]", "{[(2, 3), (-1, 1)], 12}");
         test_arith_loop("[->++++[->++++<]<]", "[->++++{[(1, 4)], 8}<]");
         test_arith_loop("[<+>[-]>]", "[<+>{_}>]");
+    }
+
+    #[test]
+    fn test_hello_world() {
+        let code = "+++++++++++[>++++++>+++++++++>++++++++>++++>+++>+<<<<<<-]>++++++.>++.+++++++..+++.>>.>-.<<-.<.+++.------.--------.>>>+.>-.";
+        let mut run = Run::new(code, "");
+        while !run.step() {}
+        assert_eq!("Hello, World!\n".to_string(), String::from_utf8(run.out).unwrap());
     }
 }
