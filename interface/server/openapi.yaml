@@ -1,14 +1,16 @@
 openapi: 3.1.0
 info:
   title: Brainfuck Interpreter
-  version: 1.0.0
+  version: 0.3.0
 servers:
   - url: https://example.com/bf-itp
 tags:
   - name: /api/run
-    description: hardware interaction
+    description: get / set interpreter data
   - name: /api/sse
     description: server-side events
+  - name: /api/ctrl
+    description: controls state of hw interpreter
 paths:
   '/api/run/code':
     get:
@@ -39,7 +41,7 @@ paths:
       responses:
         200:
           description: new code was set successfully
-        424:
+        422:
           description: the interpreter is currently running
   '/api/sse/code':
     post:
@@ -52,9 +54,9 @@ paths:
         '200':
           description: sse for code changes
           content:
-            application/json: 
+            text/plain: 
               schema:
-                $ref: '#/components/schemas/SSE'
+                type: string
   '/api/run/input':
     get:
       summary: get current input
@@ -71,7 +73,7 @@ paths:
                 type: string
     put:
       summary: set current input
-      description: set input for bf program. if interpreter is already running, input can only be appended to.
+      description: set input for bf program. If interpreter is already running, only unread input can be changed.
       operationId: setInput
       tags:
       - '/api/run'
@@ -84,8 +86,8 @@ paths:
       responses:
         200:
           description: new input was set successfully
-        424:
-          description: tried to change input while running
+        422:
+          description: tried to change input that has already been read
   '/api/sse/input':
     post:
       summary: subscribe to input changes
@@ -97,9 +99,9 @@ paths:
         '200':
           description: sse for input changes
           content:
-            application/json: 
+            text/plain: 
               schema:
-                $ref: '#/components/schemas/SSE'
+                type: string
   '/api/run/output':
     get:
       summary: get current output
@@ -125,9 +127,9 @@ paths:
         '200':
           description: sse for output changes
           content:
-            application/json: 
+            text/plain:
               schema:
-                $ref: '#/components/schemas/SSE'
+                type: string
   '/api/run/state':
     get:
       summary: get current interpreter state
@@ -142,8 +144,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/State'
-        '404':
-          description: interpreter is currently idle
   '/api/sse/state':
     post:
       summary: subscribe to state changes
@@ -157,7 +157,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SSE'
+                $ref: '#/components/schemas/State'
   '/api/run/speed':
     get:
       summary: get current speed
@@ -171,27 +171,22 @@ paths:
           content:
             application/json:
               schema:
-                oneOf:
-                - type: number
-                - type: 'null'
+                type: number
     put:
       summary: set interpreter speed
       description: set speed for interpreter to run automatically
       operationId: setSpeed
       tags:
       - '/api/run'
+      requestBody:
+        description: the new speed
+        content:
+          application/json:
+            schema:
+              type: number
       responses:
         '200':
           description: speed set successfully
-    delete:
-      summary: pause interpreter
-      description: set interpreter to manual step-by-step execution
-      operationId: deleteSpeed
-      tags:
-      - '/api/run'
-      responses:
-        '200':
-          description: speed deleted successfully
   '/api/sse/speed':
     post:
       summary: subscribe to speed changes
@@ -205,53 +200,78 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SSE'
-  '/api/run/start':
-    post:
-      summary: start interpreter run
-      description: if interpreter is in initial state, start a run
-      operationId: startRun
+                type: number
+  '/api/ctrl':
+    put:
+      summary: enable control
+      description: start controlling hw interpreter to get digital twin data
+      operationId: enableControl
       tags:
-      - '/api/run'
+      - '/api/ctrl'
       responses:
         '200':
-          description: run started
+          description: control enabled
         '400':
-          description: interpreter was not in initial state
-  '/api/run/reset':
-    post:
-      summary: reset interpreter state
-      description: set interpreter to initial state, retaining input and code
-      operationId: resetRun
+          description: control was already enabled
+    delete:
+      summary: disable control
+      description: stop controlling hw interpreter
+      operationId: disableControl
       tags:
-      - '/api/run'
+      - '/api/ctrl'
       responses:
         '200':
-          description: run reset
-  '/api/run/restart':
-    post:
-      summary: restart current program
-      description: if interpreter has finished, run the same program again
-      operationId: restartRun
-      tags:
-      - '/api/run'
-      responses:
-        '200':
-          description: run restartet
+          description: control disabled
         '400':
-          description: interpreter not finished yet
-  '/api/run/step':
+          description: control was already disabled
+  '/api/ctrl/start':
     post:
-      summary: run single step
-      description: if speed was set to manual, advance execution by one step
-      operationId: runStep
+      summary: start interpreter
+      description: either starts a new run or resumes a paused run
+      operationId: startItp
       tags:
-      - '/api/run'
+      - '/api/ctrl'
       responses:
         '200':
-          description: step run successfully
+          description: interpreter was started or resumed
         '400':
-          description: interpreter not running or speed not set to manual execution
+          description: interpreter currently not controlled or already running
+  '/api/ctrl/pause':
+    post:
+      summary: pause interpreter
+      description: pauses hw interpreter if currently running
+      operationId: pauseItp
+      tags:
+      - '/api/ctrl'
+      responses:
+        '200':
+          description: interpreter paused
+        '400':
+          description: interpreter was not running or is uncontrolled
+  '/api/ctrl/step':
+    post:
+      summary: execute single step
+      description: let the interpreter run a single step. if the interpreter is currently idle, a new run will be started.
+      operationId: stepItp
+      tags:
+      - '/api/ctrl'
+      responses:
+        '200':
+          description: step executed
+        '400':
+          description: interpreter was not paused or initial or interpreter is not controlled
+  '/api/ctrl/reset':
+    post:
+      summary: reset interpreter
+      description: set interpreter to idle mode, stopping any running program
+      operationId: resetItp
+      tags:
+      - '/api/ctrl'
+      responses:
+        '200':
+          description: interpreter reset
+        '400':
+          description: interpreter is not controlled
   '/examples':
     get:
       summary: get examples
@@ -284,9 +304,15 @@ components:
             type: number
         head:
           type: number
-        pc:
-          type: number
-          description: program counter
+        code:
+          type: object
+          properties:
+            pc:
+              type: number
+            offset:
+              type: number
+            fragment:
+              type: string
         ic:
           type: number
           description: input counter
@@ -300,25 +326,13 @@ components:
             type: number
         cycles:
           type: number
-    SSE:
-      type: object
-      description: representing server-side events
-      properties:
-        added:
-          type: object
-          properties:
-            message:
-              type: string
-            createdAt:
-              type: string
-              format: date-time
-        updated:
-          type: object
-          properties:
-            previous:
-              type: string
-            newValue:
-              type: string
-            updatedAt:
-              type: string
-              format: date-time
+        control:
+          type: string
+          enum:
+          - idle
+          - startup
+          - running
+          - paused
+          - uncontrolled
+      required:
+      - control

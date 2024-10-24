@@ -357,33 +357,43 @@ pub fn run(inp: &str, prog: &[BFCommandOpt]) -> (usize, Vec<u8>) {
     (real_cycles, out)
 }
 
+#[derive(Debug)]
 pub struct Run {
     tape: [u8; TAPE_LEN],
     pc: usize,
-    ic: usize,
+    pub ic: usize,
     head: usize,
     code: Vec<BFCommand>,
     jumping: Option<usize>,
     stack: Vec<usize>,
     pub inp: Vec<u8>,
-    out: Vec<u8>,
+    pub out: Vec<u8>,
     cycles: usize,
 }
 
 #[derive(Serialize)]
 pub struct RunState {
     tape: Vec<u8>,
-    pc: usize,
-    ic: usize,
     head: usize,
+    code: CodeView,
+    ic: usize,
     jumping: Option<usize>,
     stack: Vec<usize>,
-    out: Vec<u8>,
     cycles: usize,
+    control: String,
+}
+
+#[derive(Serialize)]
+pub struct CodeView {
+    pc: usize,
+    offset: usize,
+    fragment: String,
 }
 
 impl Run {
-    pub fn new(code: &str, inp: &str) -> Self {
+    const VIEW_SIZE: usize = 3;
+
+    pub fn new(code: &str, input: &str) -> Self {
         Self {
             tape: [0; TAPE_LEN],
             pc: 0,
@@ -392,26 +402,37 @@ impl Run {
             code: parse(code),
             jumping: None,
             stack: Vec::new(),
-            inp: inp.as_bytes().to_vec(),
+            inp: input.as_bytes().to_vec(),
             out: Vec::new(),
             cycles: 0,
         }
     }
 
-    pub fn state(&self) -> RunState {
+    fn get_code_view(&self) -> CodeView {
+        let start = Self::VIEW_SIZE.max(self.pc) - Self::VIEW_SIZE;
+        let end = self.code.len().min(self.pc + Self::VIEW_SIZE + 1);
+        let code_frag: String = self.code[start..end].iter().map(<BFCommand as ToString>::to_string).collect();
+        CodeView {
+            fragment: code_frag,
+            offset: start,
+            pc: self.pc,
+        }
+    }
+
+    pub fn state(&self, ctrl: &str) -> RunState {
         let mut tape_slice = Vec::new();
-        for i in self.head - 10..=self.head + 10 {
-            tape_slice.push(self.tape[i.rem_euclid(TAPE_LEN)]);
+        for i in self.head as isize - Self::VIEW_SIZE as isize..=self.head as isize + Self::VIEW_SIZE as isize {
+            tape_slice.push(self.tape[i.rem_euclid(TAPE_LEN as isize) as usize]);
         }
         RunState {
             tape: tape_slice,
-            pc: self.pc,
+            code: self.get_code_view(),
             ic: self.ic,
             head: self.head,
             jumping: self.jumping,
             stack: self.stack.clone(),
-            out: self.out.clone(),
             cycles: self.cycles,
+            control: ctrl.to_string(),
         }
     }
 
@@ -423,6 +444,9 @@ impl Run {
     /// 
     /// returns true when finished
     pub fn step(&mut self) -> bool {
+        if self.cycles % 1000 == 0 {
+            println!("cycle {}", self.cycles);
+        }
         self.cycles += 1;
         if let Some(depth) = &mut self.jumping {
             match self.code[self.pc] {

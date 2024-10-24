@@ -1,7 +1,11 @@
-use std::{thread, time::Duration};
+use std::{thread::{self, JoinHandle}, time::Duration};
 
 use rppal::gpio::{Gpio, IoPin, Level, Mode, OutputPin};
 use crate::GLOBAL_STATE;
+
+pub fn start_hw_thread() -> JoinHandle<()> {
+    thread::spawn(|| run_hw("TODO"))
+}
 
 /// DO NOT USE
 /// 
@@ -9,7 +13,7 @@ use crate::GLOBAL_STATE;
 pub fn run_hw(code: &str) {
     let mut ports = GLOBAL_STATE.ports.lock().unwrap();
     // write program to eeprom
-    ports.control.set_control(Level::High);
+    ports.control.set_control(true);
     ports.program.write_program(code);
     loop {
         let Some(speed) = *GLOBAL_STATE.speed.read().unwrap() else {
@@ -130,8 +134,8 @@ impl ControlPort {
         }
     }
 
-    pub fn set_control(&mut self, level: Level) {
-        self.pins[0].write(level);
+    pub fn set_control(&mut self, level: bool) {
+        self.pins[0].write(level.into());
     }
 
     pub fn reset(&mut self) {
