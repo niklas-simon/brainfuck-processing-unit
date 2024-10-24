@@ -1,4 +1,4 @@
-/target
-/bf
-/static
-!/static/favicon.ico
+target
+bf
+static/*
+!static/favicon.ico
