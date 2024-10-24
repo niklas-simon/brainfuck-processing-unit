@@ -1,7 +1,7 @@
 use std::{io::Cursor, sync::{mpsc::{self, Sender}, OnceLock, RwLock}, time::Instant};
 
 use bf_itp::Run;
-use rocket::{http::{ContentType, Status}, response::{self, Responder}, Request, Response};
+use rocket::{fs::{relative, FileServer, NamedFile}, get, http::{ContentType, Status}, response::{self, Responder}, routes, Request, Response};
 use serde_json::{json, Value};
 
 #[cfg(all(target_arch = "aarch64", target_env = "gnu"))]
@@ -26,8 +26,15 @@ async fn main() {
 async fn start_rocket() {
     rocket::build()
         .mount("/api", api::get_routes())
+        .mount("/", FileServer::from(relative!("static")))
+        .mount("/", routes![get_examples])
         .launch().await
         .expect("failed to launch rocket");
+}
+
+#[get("/examples")]
+async fn get_examples() -> Option<NamedFile> {
+    NamedFile::open("examples.json").await.ok()
 }
 
 #[derive(Debug)]
