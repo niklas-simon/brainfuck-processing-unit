@@ -70,7 +70,7 @@ pub fn set_speed(speed: String) {
 ##   /api/sse   ##
 \*##############*/
 
-#[post("/sse/code")]
+#[get("/sse/code")]
 pub fn code_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
@@ -87,7 +87,7 @@ pub fn code_event() -> EventStream![] {
     }
 }
 
-#[post("/sse/input")]
+#[get("/sse/input")]
 pub fn input_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
@@ -104,7 +104,7 @@ pub fn input_event() -> EventStream![] {
     }
 }
 
-#[post("/sse/output")]
+#[get("/sse/output")]
 pub fn output_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
@@ -121,7 +121,7 @@ pub fn output_event() -> EventStream![] {
     }
 }
 
-#[post("/sse/speed")]
+#[get("/sse/speed")]
 pub fn speed_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
@@ -138,7 +138,7 @@ pub fn speed_event() -> EventStream![] {
     }
 }
 
-#[post("/sse/state")]
+#[get("/sse/state")]
 pub fn state_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));

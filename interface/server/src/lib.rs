@@ -444,9 +444,6 @@ impl Run {
     /// 
     /// returns true when finished
     pub fn step(&mut self) -> bool {
-        if self.cycles % 1000 == 0 {
-            println!("cycle {}", self.cycles);
-        }
         self.cycles += 1;
         if let Some(depth) = &mut self.jumping {
             match self.code[self.pc] {

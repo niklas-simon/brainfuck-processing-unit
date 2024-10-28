@@ -44,7 +44,7 @@ paths:
         422:
           description: the interpreter is currently running
   '/api/sse/code':
-    post:
+    get:
       summary: subscribe to code changes
       description: sse endpoint for code changes
       operationId: sseCode
@@ -89,7 +89,7 @@ paths:
         422:
           description: tried to change input that has already been read
   '/api/sse/input':
-    post:
+    get:
       summary: subscribe to input changes
       description: sse endpoint for input changes
       operationId: sseInput
@@ -117,7 +117,7 @@ paths:
               schema:
                 type: string
   '/api/sse/output':
-    post:
+    get:
       summary: subscribe to output changes
       description: sse endpoint for output changes
       operationId: sseOutput
@@ -145,7 +145,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/State'
   '/api/sse/state':
-    post:
+    get:
       summary: subscribe to state changes
       description: subscribe to sse for changes of interpreter state
       operationId: sseState
@@ -188,7 +188,7 @@ paths:
         '200':
           description: speed set successfully
   '/api/sse/speed':
-    post:
+    get:
       summary: subscribe to speed changes
       description: subscribe to sse for changes of interpreter speed
       operationId: sseSpeed
@@ -278,7 +278,7 @@ paths:
           description: interpreter reset
         '400':
           description: interpreter is not controlled
-  '/examples':
+  '/api/examples':
     get:
       summary: get examples
       description: get a list of examples 

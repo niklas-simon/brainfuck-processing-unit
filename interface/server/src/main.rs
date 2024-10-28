@@ -27,7 +27,7 @@ async fn start_rocket() {
     rocket::build()
         .mount("/api", api::get_routes())
         .mount("/", FileServer::from(relative!("static")))
-        .mount("/", routes![get_examples])
+        .mount("/api", routes![get_examples])
         .launch().await
         .expect("failed to launch rocket");
 }

@@ -13,16 +13,19 @@ pub fn start_hw_thread(tx: Receiver<HWCmd>) -> JoinHandle<()> {
             while let Ok(cmd) = tx.try_recv() {
                 handle_cmd(cmd);
             }
-            let gstate = glob.state.read().unwrap();
-            match *gstate {
+            let state = glob.state.read().unwrap();
+            match *state {
                 ItpState::Running { paused, .. } if !paused => {
-                    drop(gstate);
+                    drop(state);
                     handle_cmd(HWCmd::ExecStep);
                     let tick = Duration::from_secs_f64(1.0 / glob.speed.read().unwrap().pow(3) as f64);
                     thread::sleep(tick);
                 },
-                // if not mocked, i/o handler needs to be active when in uncontrolled state
-                _ => thread::sleep(Duration::from_millis(40)),
+                _ => {
+                    // if not mocked, i/o handler needs to be active when in uncontrolled state
+                    drop(state);
+                    thread::sleep(Duration::from_millis(40))
+                },
             }
         }
     })
