@@ -1,50 +1,68 @@
+import RestService, { Example } from "@/run-service";
 import { Button } from "@nextui-org/button";
 import { Dropdown, DropdownItem, DropdownMenu, DropdownTrigger } from "@nextui-org/dropdown";
 import { Textarea } from "@nextui-org/input";
-import { useState } from "react";
+import { Skeleton } from "@nextui-org/skeleton";
+import { useEffect, useState } from "react";
 
-const presets = [
-    {
-        name: "Hello World",
-        program: "++++++++[>++++[>++>+++>+++>+<<<<-]>+>+>->>+[<]<-]>>.>---.+++++++..+++.>>.<-.<.+++.------.--------.>>+.>++."
-    },
-    {
-        name: "Cat",
-        program: ",[.,]"
-    },
-    {
-        name: "Prime Factorization",
-        program: ">,----------[-------------------------------------->++++++++++<<[->>>+<<<]>>[->[->+<<<<+>>>]>[-<+>]<<]>[-]<<[-<+>],----------]+<-[+>+<[->>+>+<<<]>>>[-<<<+>>>]>+[[-<+<-<-[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[<+>[-]]<[->+>+<<]>>[-<<+>>]<[[-]<-<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<+>[-]]]<]<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<+>[-]]<[->+>+<<]>>[-<<+>>]<[<<[-<<+>>]>>[-]]<]+<<<[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[<->[-]]<<[-<<+>>]>[-<+>]<[-<<<[>>+<[-<->>>+<<]>>[-<<+>>]<<<]>>[-<<+>>]<[->+>+<<]>>[-<<+>>]+[>++++++++++[<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<<<->>>[-]]<-]>>>+<<<<-]>>>>[-<<<<+>>>>]<<<<<[[-]>[->++++++++++<]>[-<+>]<<<[->+>>+<<<]>>>[-<<<+>>>]<[>++++++++++[<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<<<->>>[-]]<-]>>>+<<<<-]>>>>[-<<<<+>>>>]<<<<<]<[->+>>+<<<]>>>[-<<<+>>>]<-[+>>>+[[-<<+<-<->[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[<+>[-]]<[->+>+<<]>>[-<<+>>]<[[-]<-<<<<[->>>>>+>+<<<<<<]>>>>>>[-<<<<<<+>>>>>>]<[<+>[-]]]<]+<<<[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[[-]<->]<[->+>+<<]>>[-<<+>>]<[[-]<<+<[-<+>]>>>]<]<++++++++++++++++++++++++++++++++++++++++++++++++.[-]<[-<+<+>>]<[---------->+<]>[-<+>]<-]<++++++++++++++++++++++++++++++++++++++++++++++++.[-]++++++++++.[-]<<[->>+>+<<<]>>>[-<<<+>>>]>+[[-<+<-<-[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[<+>[-]]<[->+>+<<]>>[-<<+>>]<[[-]<-<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<+>[-]]]<]<<[->>>+>+<<<<]>>>>[-<<<<+>>>>]<[<+>[-]]<[->+>+<<]>>[-<<+>>]<[<<[-<<+>>]>>[-]]<]+<<<[->>>>+>+<<<<<]>>>>>[-<<<<<+>>>>>]<[<->[-]]<<[-<<+>>]>[-<+>]<]<<<-]"
-    }
-]
+const rs = RestService.getInstance();
+const presetRequest = rs.getExamples();
+const programRequest = rs.getProgram();
 
 export default function Programmer() {
-    const [program, setProgram] = useState(window.localStorage.getItem("program") || "");
+    const [program, setProgram] = useState<string | null>(null);
+    const [presets, setPresets] = useState<Example[] | null>(null);
+    const [isWriting, setWriting] = useState(false);
 
-    const writeProgram = () => {
-        window.dispatchEvent(new CustomEvent("program", {
-            detail: program
-        }));
-        window.localStorage.setItem("program", program);
-    }
+    useEffect(() => {
+        if (presets === null) {
+            presetRequest.then(setPresets);
+        }
+        if (program === null) {
+            programRequest.then(setProgram);
+        }
+
+        const programEvent = rs.getProgramEvent();
+        const onProgramMessage = (e: MessageEvent) => {
+            console.log(e);
+            setProgram(e.data);
+        }
+        programEvent.addEventListener("message", onProgramMessage);
+
+        return () => {
+            programEvent.removeEventListener("message", onProgramMessage);
+        }
+    }, []);
+
+    const writeProgram = async () => {
+        setWriting(true);
+        await rs.setProgram(program!);
+        setWriting(false);
+    };
 
     return <div className="flex flex-col gap-4">
-        <Textarea label="Program" placeholder=",[.,]" radius="none" className="font-mono"
-            value={program} onChange={e => setProgram(e.target.value)}/>
+        <Skeleton isLoaded={program !== null}>
+            <Textarea label="Program" placeholder=",[.,]" radius="none" className="font-mono"
+                value={program || ""} onChange={e => setProgram(e.target.value)}/>
+        </Skeleton>
         <div className="flex flex-row gap-4">
-            <Button color="primary" variant="light" className="w-min" onClick={writeProgram}>Write</Button>
-            <Dropdown>
-                <DropdownTrigger>
-                    <Button variant="light" color="secondary">
-                        Preset
-                    </Button>
-                </DropdownTrigger>
-                <DropdownMenu onAction={key => setProgram(presets[key as number].program)}>
-                    {presets.map((p, i) => <DropdownItem key={i}>
-                        {p.name}
-                    </DropdownItem>)}
-                </DropdownMenu>
-            </Dropdown>
+            <Skeleton isLoaded={program !== null} className="rounded-medium">
+                <Button color="primary" variant="light" onClick={writeProgram} isLoading={isWriting}>Write</Button>
+            </Skeleton>
+            <Skeleton isLoaded={program !== null && presets !== null} className="rounded-medium">
+                <Dropdown>
+                    <DropdownTrigger>
+                        <Button variant="light" color="secondary">
+                            Preset
+                        </Button>
+                    </DropdownTrigger>
+                    {presets && <DropdownMenu onAction={key => setProgram(presets[key as number].code)}>
+                        {presets.map((p, i) => <DropdownItem key={i}>
+                            {p.name}
+                        </DropdownItem>)}
+                    </DropdownMenu>}
+                </Dropdown>
+            </Skeleton>
         </div>
     </div>
 }

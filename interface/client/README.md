@@ -1,50 +1,20 @@
-# Vite & NextUI Template
+# Hardware Brainfuck Interpreter Interface Client
 
-This is a template for creating applications using Vite and NextUI (v2).
+## Setup
 
-[Try it on CodeSandbox](https://githubbox.com/nextui-org/vite-template)
+### Prerequisites
 
-## Technologies Used
+- [NodeJS](https://nodejs.org/en) (for Linux, consider [nvm](https://github.com/nvm-sh/nvm))
+- [pnpm](https://pnpm.io/) (when NodeJS is installed, run `corepack enable pnpm`)
 
-- [Vite](https://vitejs.dev/guide/)
-- [NextUI](https://nextui.org)
-- [Tailwind CSS](https://tailwindcss.com)
-- [Tailwind Variants](https://tailwind-variants.org)
-- [TypeScript](https://www.typescriptlang.org)
-- [Framer Motion](https://www.framer.com/motion)
+### Install Dependencies
 
-## How to Use
+To install all required dependencies, run `pnpm install` in the projects root folder (`interface/client`)
 
-To clone the project, run the following command:
+## Development
 
-```bash
-git clone https://github.com/nextui-org/vite-template.git
-```
+To run a development server, which is configured to forward all `/api`-calls to `http://localhost:8000`, run `pnpm run dev`. The server configuration file is `interface/client/vite.config.ts`.
 
-### Install dependencies
+## Building
 
-You can use one of them `npm`, `yarn`, `pnpm`, `bun`, Example using `npm`:
-
-```bash
-npm install
-```
-
-### Run the development server
-
-```bash
-npm run dev
-```
-
-### Setup pnpm (optional)
-
-If you are using `pnpm`, you need to add the following code to your `.npmrc` file:
-
-```bash
-public-hoist-pattern[]=*@nextui-org/*
-```
-
-After modifying the `.npmrc` file, you need to run `pnpm install` again to ensure that the dependencies are installed correctly.
-
-## License
-
-Licensed under the [MIT license](https://github.com/nextui-org/vite-template/blob/main/LICENSE).
+To build a production-ready website, run `pnpm run build`. The files will be saved under `interface/client/dist`.
