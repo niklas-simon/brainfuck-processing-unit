@@ -21,7 +21,8 @@ export type State = {
     jumping?: null | number,
     stack?: number[],
     cycles?: number,
-    control?: "idle" | "uncontrolled" | "paused" | "running" | "startup" | "wait_input" | "output_ready"
+    run_state?: "default" | "jumping" | "wait_input" | "output_ready",
+    control_state: "idle" | "startup" | "running" | "paused" | "uncontrolled"
 }
 
 export enum Action {
@@ -70,32 +71,32 @@ export default class RestService {
         window.onbeforeunload = () => [this.programEvent, this.inputEvent, this.outputEvent, this.stateEvent, this.speedEvent].forEach(e => e.close());
 
         this.programEvent.addEventListener("message", e => {
-            this.program = e.data;
-            window.dispatchEvent(new CustomEvent("program", {
+            this.program = JSON.parse(e.data) as string;
+            window.dispatchEvent(new CustomEvent("setProgram", {
                 detail: this.program
             }));
         });
         this.inputEvent.addEventListener("message", e => {
-            this.input = e.data;
-            window.dispatchEvent(new CustomEvent("input", {
+            this.input = JSON.parse(e.data) as string;
+            window.dispatchEvent(new CustomEvent("setInput", {
                 detail: this.input
             }));
         });
         this.outputEvent.addEventListener("message", e => {
-            this.output = e.data;
-            window.dispatchEvent(new CustomEvent("output", {
+            this.output = JSON.parse(e.data) as string;
+            window.dispatchEvent(new CustomEvent("setOutput", {
                 detail: this.output
             }));
         });
         this.stateEvent.addEventListener("message", e => {
             this.state = JSON.parse(e.data) as State;
-            window.dispatchEvent(new CustomEvent("state", {
+            window.dispatchEvent(new CustomEvent("setState", {
                 detail: this.state
             }));
         });
         this.speedEvent.addEventListener("message", e => {
-            this.speed = parseInt(e.data);
-            window.dispatchEvent(new CustomEvent("speed", {
+            this.speed = JSON.parse(e.data) as number;
+            window.dispatchEvent(new CustomEvent("setSpeed", {
                 detail: this.speed
             }));
         });
@@ -103,7 +104,7 @@ export default class RestService {
         _fetch("/api/run/code").then(res => res.text()).then(res => {
             if (!this.program) {
                 this.program = res;
-                window.dispatchEvent(new CustomEvent("program", {
+                window.dispatchEvent(new CustomEvent("setProgram", {
                     detail: this.program
                 }));
             }
@@ -111,7 +112,7 @@ export default class RestService {
         _fetch("/api/run/input").then(res => res.text()).then(res => {
             if (!this.input) {
                 this.input = res;
-                window.dispatchEvent(new CustomEvent("input", {
+                window.dispatchEvent(new CustomEvent("setInput", {
                     detail: this.input
                 }));
             }
@@ -119,7 +120,7 @@ export default class RestService {
         _fetch("/api/run/output").then(res => res.text()).then(res => {
             if (!this.output) {
                 this.output = res;
-                window.dispatchEvent(new CustomEvent("output", {
+                window.dispatchEvent(new CustomEvent("setOutput", {
                     detail: this.output
                 }));
             }
@@ -127,7 +128,7 @@ export default class RestService {
         _fetch("/api/run/state").then(res => res.json() as Promise<State>).then(res => {
             if (!this.state) {
                 this.state = res;
-                window.dispatchEvent(new CustomEvent("state", {
+                window.dispatchEvent(new CustomEvent("setState", {
                     detail: this.state
                 }));
             }
@@ -135,7 +136,7 @@ export default class RestService {
         _fetch("/api/run/speed").then(res => res.text()).then(res => parseInt(res)).then(res => {
             if (!this.speed) {
                 this.speed = res;
-                window.dispatchEvent(new CustomEvent("speed", {
+                window.dispatchEvent(new CustomEvent("setSpeed", {
                     detail: this.speed
                 }));
             }
@@ -167,7 +168,7 @@ export default class RestService {
 
     public onProgramChange(callback: (program: string) => void) {
         const profile = {
-            name: "program",
+            name: "setProgram",
             callback: (e: Event) => callback((e as CustomEvent).detail)
         }
         window.addEventListener(profile.name, profile.callback);
@@ -187,7 +188,7 @@ export default class RestService {
 
     public onInputChange(callback: (input: string) => void) {
         const profile = {
-            name: "input",
+            name: "setInput",
             callback: (e: Event) => callback((e as CustomEvent).detail)
         }
         window.addEventListener(profile.name, profile.callback);
@@ -200,7 +201,7 @@ export default class RestService {
 
     public onOutputChange(callback: (output: string) => void) {
         const profile = {
-            name: "output",
+            name: "setOutput",
             callback: (e: Event) => callback((e as CustomEvent).detail)
         }
         window.addEventListener(profile.name, profile.callback);
@@ -213,7 +214,7 @@ export default class RestService {
 
     public onStateChange(callback: (state: State) => void) {
         const profile = {
-            name: "state",
+            name: "setState",
             callback: (e: Event) => callback((e as CustomEvent).detail as State)
         }
         window.addEventListener(profile.name, profile.callback);
@@ -233,7 +234,7 @@ export default class RestService {
 
     public onSpeedChange(callback: (speed: number) => void) {
         const profile = {
-            name: "speed",
+            name: "setSpeed",
             callback: (e: Event) => callback((e as CustomEvent).detail as number)
         }
         window.addEventListener(profile.name, profile.callback);

@@ -35,9 +35,9 @@ export default function Controller() {
                         <Spinner color="primary" size="sm"/>
                     </div>
                 : 
-                    <Switch isSelected={state?.control !== "uncontrolled"} onValueChange={async () => {
+                    <Switch isSelected={state?.control_state !== "uncontrolled"} onValueChange={async () => {
                         setSending(true);
-                        await rs.setControl(state!.control === "uncontrolled");
+                        await rs.setControl(state!.control_state === "uncontrolled");
                         setSending(false);
                     }}></Switch>
                 }
@@ -47,25 +47,25 @@ export default function Controller() {
         <Skeleton isLoaded={state !== null} className="w-min rounded-medium">
             <ButtonGroup>
                 <Button isIconOnly color="success" variant="ghost"
-                    isDisabled={state?.control === "uncontrolled" || !["paused", "idle"].includes(state?.control || "")}
+                    isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
                     isLoading={isSending}
                     onClick={() => rs.controlAction(Action.PLAY)}>
                     <Play/>
                 </Button>
                 <Button isIconOnly color="warning" variant="ghost"
-                    isDisabled={state?.control === "uncontrolled" || ["idle", "paused", "uncontrolled"].includes(state?.control || "")}
+                    isDisabled={["idle", "paused", "uncontrolled"].includes(state?.control_state || "")}
                     isLoading={isSending}
                     onClick={() => rs.controlAction(Action.PAUSE)}>
                     <Pause/>
                 </Button>
                 <Button isIconOnly color="primary" variant="ghost"
-                    isDisabled={state?.control === "uncontrolled" || !["paused", "idle"].includes(state?.control || "")}
+                    isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
                     isLoading={isSending}
                     onClick={() => rs.controlAction(Action.STEP)}>
                     <SkipForward/>
                 </Button>
                 <Button isIconOnly color="danger" variant="ghost"
-                    isDisabled={"uncontrolled" === state?.control}
+                    isDisabled={"uncontrolled" === state?.control_state}
                     isLoading={isSending}
                     onClick={() => rs.controlAction(Action.RESET)}>
                     <RefreshCcw className="text-danger-500 hover:text-danger-foreground"/>

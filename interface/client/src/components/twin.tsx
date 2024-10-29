@@ -10,32 +10,32 @@ const states = [
     {
         text: "Running",
         color: "success",
-        on: state => state.control === "running" && !state.jumping
+        on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "default"
     },
     {
         text: "Starting",
         color: "warning",
-        on: state => state.control === "startup"
+        on: state => state.control_state === "startup"
     },
     {
         text: "Jumping",
         color: "warning",
-        on: state => state.jumping
+        on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "jumping"
     },
     {
         text: "Waiting for input",
         color: "danger",
-        on: state => state.control === "wait_input"
+        on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "wait_input"
     },
     {
         text: "Waiting for output",
         color: "danger",
-        on: state => state.control === "output_ready"
+        on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "output_ready"
     },
     {
         text: "Idle",
         color: "success",
-        on: state => state.control === "idle"
+        on: state => state.control_state === "idle"
     }
  ] as {text: string, color: "success" | "danger" | "warning", on: (state: State) => boolean}[]
 
@@ -61,8 +61,8 @@ export default function Twin() {
     const inputQueue = input?.split("").slice(state?.ic) || [];
 
     return <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden">
-        {"uncontrolled" === state?.control ?
-            <Chip color="warning" variant="flat">currently not controlled or idle</Chip>
+        {"uncontrolled" === state?.control_state ?
+            <Chip color="warning" variant="flat">currently not controlled</Chip>
         :
             <Skeleton isLoaded={state !== null}>
                 <Card className="bg-content2 overflow-visible" radius="none">

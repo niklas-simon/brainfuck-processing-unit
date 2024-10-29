@@ -38,8 +38,9 @@ export default function DefaultLayout({
         <div className="min-w-screen min-h-screen flex flex-col items-center">
             <Navbar isBordered>
                 <NavbarBrand>
-                    <Link className="flex flex-row gap-4" color="foreground" href="/">
-                        <img src="dhge_logo.png" className="h-[2em]"/>
+                    <Link className="flex flex-row" color="foreground" href="/">
+                        <img src="icon.png" className="h-[2em] mr-2"/>
+                        <img src="dhge_logo_writing.png" className="h-[2em] mr-4"/>
                         <p className="font-bold text-inherit">Brainfuck Interpreter</p>
                     </Link>
                 </NavbarBrand>
