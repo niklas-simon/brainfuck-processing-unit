@@ -7,32 +7,30 @@ import { useEffect, useState } from "react";
 
 const rs = RestService.getInstance();
 const presetRequest = rs.getExamples();
-const programRequest = rs.getProgram();
 
 export default function Programmer() {
-    const [program, setProgram] = useState<string | null>(null);
+    const [program, setProgram] = useState<string | null>(rs.getProgram());
     const [presets, setPresets] = useState<Example[] | null>(null);
+
     const [isWriting, setWriting] = useState(false);
+    const [selectedPreset, setSelectedPreset] = useState(new Set<string>());
 
     useEffect(() => {
         if (presets === null) {
             presetRequest.then(setPresets);
         }
-        if (program === null) {
-            programRequest.then(setProgram);
-        }
 
-        const programEvent = rs.getProgramEvent();
-        const onProgramMessage = (e: MessageEvent) => {
-            console.log(e);
-            setProgram(e.data);
-        }
-        programEvent.addEventListener("message", onProgramMessage);
+        const programProfile = rs.onProgramChange(setProgram);
 
         return () => {
-            programEvent.removeEventListener("message", onProgramMessage);
+            rs.removeListener(programProfile);
         }
     }, []);
+
+    useEffect(() => {
+        const selected = presets?.map((p, i) => Object.assign(p, {i})).filter(p => p.code === program).map(p => p.i.toString()) || [];
+        setSelectedPreset(new Set(selected));
+    }, [presets, program]);
 
     const writeProgram = async () => {
         setWriting(true);
@@ -56,10 +54,10 @@ export default function Programmer() {
                             Preset
                         </Button>
                     </DropdownTrigger>
-                    {presets && <DropdownMenu onAction={key => setProgram(presets[key as number].code)}>
-                        {presets.map((p, i) => <DropdownItem key={i}>
-                            {p.name}
-                        </DropdownItem>)}
+                    {presets && <DropdownMenu onAction={key => {
+                        setProgram(presets[key as number].code);
+                    }} selectionMode="single" selectedKeys={selectedPreset} disallowEmptySelection>
+                        {presets.map((p, i) => <DropdownItem key={i.toString()} title={p.name} description={p.desc}/>)}
                     </DropdownMenu>}
                 </Dropdown>
             </Skeleton>

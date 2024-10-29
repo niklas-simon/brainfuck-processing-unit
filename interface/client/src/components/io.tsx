@@ -6,38 +6,19 @@ import { useEffect, useState } from "react";
 
 const rs = RestService.getInstance();
 
-const inputRequest = rs.getInput();
-const outputRequest = rs.getOutput();
-
 export default function IO() {
-    const [output, setOutput] = useState<string | null>(null);
-    const [input, setInput] = useState<string | null>(null);
+    const [output, setOutput] = useState<string | null>(rs.getOutput());
+    const [input, setInput] = useState<string | null>(rs.getInput());
 
     const [isSending, setSending] = useState(false);
 
     useEffect(() => {
-        if (input === null) {
-            inputRequest.then(setInput);
-        }
-        if (output === null) {
-            outputRequest.then(setOutput);
-        }
-
-        const inputEvent = rs.getInputEvent();
-        const onInputMessage = (e: MessageEvent) => {
-            setInput(e.data);
-        }
-        inputEvent.addEventListener("message", onInputMessage);
-
-        const outputEvent = rs.getOutputEvent();
-        const onOutputMessage = (e: MessageEvent) => {
-            setOutput(e.data);
-        }
-        outputEvent.addEventListener("message", onOutputMessage);
+        const inputProfile = rs.onInputChange(setInput);
+        const outputProfile = rs.onOutputChange(setOutput);
 
         return () => {
-            inputEvent.removeEventListener("message", onInputMessage);
-            outputEvent.removeEventListener("message", onOutputMessage);
+            rs.removeListener(inputProfile);
+            rs.removeListener(outputProfile);
         }
     }, []);
 

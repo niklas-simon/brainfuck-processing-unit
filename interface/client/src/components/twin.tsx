@@ -6,84 +6,62 @@ import { useEffect, useState } from "react";
 import RestService, { State } from "@/run-service";
 import { Skeleton } from "@nextui-org/skeleton";
 
-const states = {
-    running: {
+const states = [
+    {
         text: "Running",
-        color: "success"
+        color: "success",
+        on: state => state.control === "running" && !state.jumping
     },
-    startup: {
+    {
         text: "Starting",
-        color: "warning"
+        color: "warning",
+        on: state => state.control === "startup"
     },
-    jumping: {
+    {
         text: "Jumping",
-        color: "warning"
+        color: "warning",
+        on: state => state.jumping
     },
-    wait_input: {
+    {
         text: "Waiting for input",
-        color: "danger"
+        color: "danger",
+        on: state => state.control === "wait_input"
     },
-    output_ready: {
+    {
         text: "Waiting for output",
-        color: "danger"
+        color: "danger",
+        on: state => state.control === "output_ready"
     },
-    idle: {
-        text: "Finished",
-        color: "success"
+    {
+        text: "Idle",
+        color: "success",
+        on: state => state.control === "idle"
     }
-} as {[key: string]: {text: string, color: "success" | "danger" | "warning"}}
+ ] as {text: string, color: "success" | "danger" | "warning", on: (state: State) => boolean}[]
 
 const rs = RestService.getInstance();
-const programRequest = rs.getProgram();
-const inputRequest = rs.getInput();
-const stateRequest = rs.getState();
 
 export default function Twin() {
-    const [program, setProgram] = useState<string | null>(null);
-    const [input, setInput] = useState<string | null>(null);
-    const [state, setState] = useState<State | null>(null);
+    const [program, setProgram] = useState<string | null>(rs.getProgram());
+    const [input, setInput] = useState<string | null>(rs.getInput());
+    const [state, setState] = useState<State | null>(rs.getState());
 
     useEffect(() => {
-        if (program === null) {
-            programRequest.then(setProgram);
-        }
-        if (input === null) {
-            inputRequest.then(setInput);
-        }
-        if (state === null) {
-            stateRequest.then(setState);
-        }
-
-        const programEvent = rs.getProgramEvent();
-        const onProgramMessage = (e: MessageEvent) => {
-            setProgram(e.data);
-        }
-        programEvent.addEventListener("message", onProgramMessage);
-
-        const inputEvent = rs.getInputEvent();
-        const onInputMessage = (e: MessageEvent) => {
-            setInput(e.data);
-        }
-        inputEvent.addEventListener("message", onInputMessage);
-        
-        const stateEvent = rs.getProgramEvent();
-        const onStateMessage = (e: MessageEvent) => {
-            console.log(e);
-            setState(JSON.parse(e.data) as State);
-        }
-        console.log("add event listener");
-        stateEvent.addEventListener("message", onStateMessage);
+        const programProfile = rs.onProgramChange(setProgram);
+        const inputProfile = rs.onInputChange(setInput);
+        const stateProfile = rs.onStateChange(setState);
         
         return () => {
-            console.log("remove event listener");
-            programEvent.removeEventListener("message", onProgramMessage);
-            inputEvent.removeEventListener("message", onInputMessage);
-            stateEvent.removeEventListener("message", onStateMessage);
+            rs.removeListener(programProfile);
+            rs.removeListener(inputProfile);
+            rs.removeListener(stateProfile);
         }
     }, []);
 
+    const inputQueue = input?.split("").slice(state?.ic) || [];
+
     return <div className="w-full h-full flex flex-col items-center justify-center overflow-hidden">
-        {["idle", "uncontrolled"].includes(state?.control || "") ?
+        {"uncontrolled" === state?.control ?
             <Chip color="warning" variant="flat">currently not controlled or idle</Chip>
         :
             <Skeleton isLoaded={state !== null}>
@@ -93,30 +71,32 @@ export default function Twin() {
                             if (!state || !program) {
                                 return null;
                             }
-                            if (state.code!.pc - 3 + i < 0) {
+                            const pc = state.code?.pc || 0;
+                            if (pc - 3 + i < 0) {
                                 return null;
                             }
-                            if (state.code!.pc - 3 + i >= program.length) {
+                            if (pc - 3 + i >= program.length) {
                                 return null;
                             }
                             return {
-                                address: state.code!.pc - 3 + i,
-                                value: program[state.code!.pc - 3 + i]
+                                address: pc - 3 + i,
+                                value: program[pc - 3 + i]
                             }
                         })}/>
-                        <Tape title="Memory" data={state?.tape!.map((v, i) => {
+                        <Tape title="Memory" data={state?.tape?.map((v, i) => {
+                            const head = state.head || 0;
                             return {
-                                address: state.head! - 3 + i,
+                                address: head - 3 + i,
                                 value: v
                             }
                         }) || []}/>
                         <div className="flex flex-row gap-2 justify-start w-full">
-                            <Table radius="none" isCompact={true} fullWidth={false} removeWrapper={true} className="bg-content1 w-min"> 
+                            <Table radius="none" isCompact={true} fullWidth={false} removeWrapper={true} className="bg-content1 w-min" aria-label="Stack"> 
                                 <TableHeader>
                                     <TableColumn className="bg-content1 rounded-none h-min pt-2">Stack</TableColumn>
                                 </TableHeader>
                                 <TableBody>
-                                    {state?.stack!.length ? 
+                                    {state?.stack?.length ? 
                                         state.stack.slice(0, 6).map((v, i) => {
                                             return <TableRow key={i}>
                                                 <TableCell className="font-mono">
@@ -134,8 +114,8 @@ export default function Twin() {
                                 </TableBody>
                             </Table>
                             <div className="flex flex-col gap-2">
-                                {Object.keys(states).map((s, i) => {
-                                    return <Chip key={i} variant="dot" className="border-none" color={state?.control === s ? states[s].color : "default"}>{states[s].text}</Chip>
+                                {states.map((s, i) => {
+                                    return <Chip key={i} variant="dot" className="border-none" color={state && s.on(state) ? s.color : "default"}>{s.text}</Chip>
                                 })}
                             </div>
                         </div>
@@ -144,7 +124,7 @@ export default function Twin() {
                         }}>
                             <span className="text-foreground-500 text-tiny">Input queue</span>
                             <div className="flex flex-row gap-2 font-mono w-max">
-                                {input ? input.split("").slice(state?.ic).map((v, i) => <div key={i} className="p-1 bg-content1 w-[1.5em] text-center">{v}</div>) : <span>(empty)</span>}
+                                {inputQueue.length > 0 ? inputQueue.map((v, i) => <div key={i} className="p-1 bg-content1 w-[1.5em] text-center">{v}</div>) : <span>(empty)</span>}
                             </div>
                         </div>
                     </CardBody>

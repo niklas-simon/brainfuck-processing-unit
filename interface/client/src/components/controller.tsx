@@ -10,45 +10,20 @@ import { Pause, Play, RefreshCcw, SkipForward } from "react-feather";
 
 const rs = RestService.getInstance();
 
-const stateRequest = rs.getState();
-const speedRequest = rs.getSpeed();
-
 export default function Controller() {
-    const [state, setState] = useState<State | null>(null);
-    const [speed, setSpeed] = useState<number | null>(null);
+    const [state, setState] = useState<State | null>(rs.getState());
+    const [speed, setSpeed] = useState<number | null>(rs.getSpeed());
 
     const [isSending, setSending] = useState(false);
     const [isSetSpeed, setSetSpeed] = useState(false);
 
     useEffect(() => {
-        if (state === null) {
-            stateRequest.then(state => {
-                setState(state);
-            });
-        }
-        if (speed === null) {
-            speedRequest.then(speed => {
-                setSpeed(speed);
-            });
-        }
-
-        const stateEvent = rs.getStateEvent();
-        const onStateMessage = (e: MessageEvent) => {
-            const state = JSON.parse(e.data) as State;
-            setState(state);
-        };
-        stateEvent.addEventListener("message", onStateMessage);
-
-        const speedEvent = rs.getSpeedEvent();
-        const onSpeedMessage = (e: MessageEvent) => {
-            console.log(e);
-            setSpeed(parseInt(e.data));
-        }
-        speedEvent.addEventListener("message", onSpeedMessage);
+        const stateProfile = rs.onStateChange(setState);
+        const speedProfile = rs.onSpeedChange(setSpeed);
 
         return () => {
-            stateEvent.removeEventListener("message", onStateMessage);
-            speedEvent.removeEventListener("message", onSpeedMessage);
+            rs.removeListener(stateProfile);
+            rs.removeListener(speedProfile);
         }
     }, []);
 
@@ -93,7 +68,7 @@ export default function Controller() {
                     isDisabled={"uncontrolled" === state?.control}
                     isLoading={isSending}
                     onClick={() => rs.controlAction(Action.RESET)}>
-                    <RefreshCcw/>
+                    <RefreshCcw className="text-danger-500 hover:text-danger-foreground"/>
                 </Button>
             </ButtonGroup>
         </Skeleton>

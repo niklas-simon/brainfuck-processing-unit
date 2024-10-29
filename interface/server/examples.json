@@ -18,5 +18,10 @@
         "name": "Looping Counter",
         "desc": "print an ever increasing number of '*'s",
         "code": ">>++++++++++[[->+<<++++>]<++[<]>[.>]>.]"
+    },
+    {
+        "name": "Cat",
+        "desc": "forwards its input to output",
+        "code": ",[.,]"
     }
 ]
