@@ -21,10 +21,7 @@ pub fn start_hw_thread(tx: Receiver<HWCmd>) -> JoinHandle<()> {
                     // itp is currently running -> execute the next step and wait depending on the global speed
                     drop(state);
                     handle_cmd(HWCmd::ExecStep);
-                    let tick = Duration::from_secs_f64(
-                        1.0 / (*glob.speed.read().unwrap() as u32).pow(3) as f64,
-                    );
-                    thread::sleep(tick);
+                    thread::sleep(speed_tick(*glob.speed.read().unwrap()));
                 }
                 // HW: if uncontrolled, i/o must be handled
                 _ => {
@@ -35,6 +32,10 @@ pub fn start_hw_thread(tx: Receiver<HWCmd>) -> JoinHandle<()> {
             }
         }
     })
+}
+
+fn speed_tick(speed: u8) -> Duration {
+    Duration::from_secs_f64(1.0 / 1_000_000.0_f64.powf((speed as f64 - 1.0) / 99.0))
 }
 
 fn handle_cmd(cmd: HWCmd) {

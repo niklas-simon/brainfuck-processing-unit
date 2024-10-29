@@ -174,6 +174,10 @@ impl Run {
     ///
     /// returns true when finished
     pub fn step(&mut self) -> bool {
+        // this should not happen
+        if self.pc >= self.code.len() {
+            return true;
+        }
         self.cycles += 1;
         if let Some(depth) = &mut self.jumping {
             match self.code[self.pc] {

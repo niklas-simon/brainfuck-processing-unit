@@ -28,6 +28,10 @@ mod hw;
 
 // have a cat
 
+// TODOs:
+// - return i/o run_state even when mocked
+// - client: show error responses
+
 pub type BFRes = Result<(), BFError>;
 
 #[rocket::main]
@@ -138,11 +142,19 @@ impl Global {
     }
 
     pub fn change_input(&self, inp: String) -> BFRes {
-        match *self.state.write().unwrap() {
-            ItpState::Running { ref mut run, .. } => {
+        let read_state = self.state.read().unwrap();
+        match *read_state {
+            ItpState::Running { ref run, .. } => {
                 let curr = self.input.read().unwrap();
                 if inp.len() >= run.ic && curr[..run.ic] == inp[..run.ic] {
+                    drop(read_state);
+                    drop(curr);
+                    let mut write_state = self.state.write().unwrap();
+                    let ItpState::Running { ref mut run, .. } = *write_state else {
+                        unreachable!("was running just a second ago");
+                    };
                     run.inp = inp.as_bytes().to_vec();
+                    drop(write_state);
                     self.set_input(inp);
                     Ok(())
                 } else {
@@ -193,12 +205,11 @@ impl Global {
             }
             ItpState::Uncontrolled(_) => "uncontrolled",
         };
-        match *self.state.read().unwrap() {
-            ItpState::Running { ref run, .. } => {
-                serde_json::to_value(run.view(ctrl_state, run_state))
-                    .unwrap_or(json!({"control": ctrl_state}))
-            }
-            _ => json!({"control": ctrl_state}),
+        let no_run = json!({"control_state": ctrl_state});
+        if let ItpState::Running { ref run, .. } = *self.state.read().unwrap() {
+            serde_json::to_value(run.view(ctrl_state, run_state)).unwrap_or_else(|_| no_run)
+        } else {
+            no_run
         }
     }
 
