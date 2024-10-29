@@ -343,7 +343,7 @@ components:
         run_state:
           type: string
           enum:
-          - regular
+          - default
           - jumping
           - wait_input
           - output_ready

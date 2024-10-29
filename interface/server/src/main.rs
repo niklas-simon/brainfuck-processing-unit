@@ -177,7 +177,7 @@ impl Global {
 
     pub fn get_state(&self) -> Value {
         let run_state = match *self.hw_state.read().unwrap() {
-            HWState::Regular => "regular",
+            HWState::Regular => "default",
             HWState::WaitInput => "wait_input",
             HWState::OutputReady => "output_ready",
         };
