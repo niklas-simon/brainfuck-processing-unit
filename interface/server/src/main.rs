@@ -176,27 +176,29 @@ impl Global {
     }
 
     pub fn get_state(&self) -> Value {
-        let ctrl = match *self.hw_state.read().unwrap() {
-            HWState::Regular => match *self.state.read().unwrap() {
-                ItpState::Idle => "idle",
-                ItpState::Startup => "startup",
-                ItpState::Running { paused, .. } => {
-                    if paused {
-                        "paused"
-                    } else {
-                        "running"
-                    }
-                }
-                ItpState::Uncontrolled(_) => "uncontrolled",
-            },
+        let run_state = match *self.hw_state.read().unwrap() {
+            HWState::Regular => "regular",
             HWState::WaitInput => "wait_input",
             HWState::OutputReady => "output_ready",
         };
+        let ctrl_state = match *self.state.read().unwrap() {
+            ItpState::Idle => "idle",
+            ItpState::Startup => "startup",
+            ItpState::Running { paused, .. } => {
+                if paused {
+                    "paused"
+                } else {
+                    "running"
+                }
+            }
+            ItpState::Uncontrolled(_) => "uncontrolled",
+        };
         match *self.state.read().unwrap() {
             ItpState::Running { ref run, .. } => {
-                serde_json::to_value(run.view(ctrl)).unwrap_or(json!({"control": ctrl}))
+                serde_json::to_value(run.view(ctrl_state, run_state))
+                    .unwrap_or(json!({"control": ctrl_state}))
             }
-            _ => json!({"control": ctrl}),
+            _ => json!({"control": ctrl_state}),
         }
     }
 
@@ -206,9 +208,9 @@ impl Global {
     }
 
     /// start digital twin
-    /// 
+    ///
     /// clear output and set state to [`ItpState::Running`]
-    /// 
+    ///
     /// to be called by the hw_runner thread when the hw interpreter was started successfully
     pub fn itp_started(&self, paused: bool) {
         self.set_output(String::new());
@@ -250,7 +252,9 @@ impl<'r> Responder<'r, 'static> for BFError {
                 Status::UnprocessableEntity,
                 "cannot change already read input during run",
             ),
-            BFError::InvalidNesting => (Status::UnprocessableEntity, "code is not correctly nested"),
+            BFError::InvalidNesting => {
+                (Status::UnprocessableEntity, "code is not correctly nested")
+            }
             BFError::ItpUncontrolled => (Status::BadRequest, "control is currently not enabled"),
             BFError::ItpRunning => (Status::BadRequest, "interpreter is currently running"),
             BFError::ItpNotRunning => (Status::BadRequest, "interpreter is currently not running"),
@@ -273,7 +277,7 @@ pub enum HWCmd {
     /// write code to hw
     Program,
     /// start a new run
-    /// 
+    ///
     /// can start paused (with /api/ctrl/step) or running (with /api/ctrl/start)
     StartRun(bool),
     /// execute a single step
@@ -283,7 +287,7 @@ pub enum HWCmd {
 }
 
 /// special hardware states
-/// 
+///
 /// set by the hw_runner thread to display when the
 /// hw interpreter is waiting for input or has some
 /// output ready

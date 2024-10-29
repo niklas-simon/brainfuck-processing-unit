@@ -98,7 +98,8 @@ pub struct RunView {
     jumping: Option<usize>,
     stack: Vec<usize>,
     cycles: usize,
-    control: String,
+    control_state: String,
+    run_state: String,
 }
 
 /// a view of the currently executing code
@@ -148,7 +149,7 @@ impl Run {
         }
     }
 
-    pub fn view(&self, ctrl: &str) -> RunView {
+    pub fn view(&self, ctrl_state: &str, run_state: &str) -> RunView {
         let mut tape_slice = Vec::new();
         // conversion between isize and usize needed for correct wrapping
         for i in self.head as isize - Self::VIEW_SIZE as isize
@@ -164,7 +165,8 @@ impl Run {
             jumping: self.jumping,
             stack: self.stack.clone(),
             cycles: self.cycles,
-            control: self.jumping.map(|_| "jumping").unwrap_or(ctrl).to_string(),
+            control_state: ctrl_state.to_string(),
+            run_state: self.jumping.map(|_| "jumping").unwrap_or(run_state).to_string(),
         }
     }
 
