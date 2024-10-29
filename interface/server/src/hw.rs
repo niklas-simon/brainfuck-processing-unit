@@ -1,14 +1,17 @@
-use std::{thread::{self, JoinHandle}, time::Duration};
+use std::{
+    thread::{self, JoinHandle},
+    time::Duration,
+};
 
-use rppal::gpio::{Gpio, IoPin, Level, Mode, OutputPin};
 use crate::GLOBAL_STATE;
+use rppal::gpio::{Gpio, IoPin, Level, Mode, OutputPin};
 
 pub fn start_hw_thread() -> JoinHandle<()> {
     thread::spawn(|| run_hw("TODO"))
 }
 
 /// DO NOT USE
-/// 
+///
 /// just a general idea of how to run hw communication
 pub fn run_hw(code: &str) {
     let mut ports = GLOBAL_STATE.ports.lock().unwrap();

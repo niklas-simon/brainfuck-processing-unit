@@ -1,21 +1,39 @@
 use std::time::{Duration, Instant};
 
-use rocket::{delete, get, post, put, response::stream::{Event, EventStream}, tokio::time, Route};
+use rocket::{
+    delete, fs::NamedFile, get, http::Status, post, put, response::stream::{Event, EventStream}, tokio::time, Route
+};
 use serde_json::{json, Value};
 
 use crate::{BFError, BFRes, HWCmd, ItpState, GLOBAL_STATE};
 
+/// 
 pub fn get_routes() -> Vec<Route> {
     rocket::routes![
         // data
-        get_code, set_code, get_input, set_input,
-        get_output, get_state, get_speed, set_speed,
+        get_code,
+        set_code,
+        get_input,
+        set_input,
+        get_output,
+        get_state,
+        get_speed,
+        set_speed,
         // sse
-        code_event, input_event, output_event,
-        state_event, speed_event,
+        code_event,
+        input_event,
+        output_event,
+        state_event,
+        speed_event,
         // ctrl
-        enable_control, disable_control,
-        start, pause, step, reset
+        enable_control,
+        disable_control,
+        start,
+        pause,
+        step,
+        reset,
+        // other
+        get_examples,
     ]
 }
 
@@ -25,7 +43,13 @@ pub fn get_routes() -> Vec<Route> {
 
 #[get("/run/code")]
 pub fn get_code() -> String {
-    GLOBAL_STATE.get().unwrap().full_code.read().unwrap().clone()
+    GLOBAL_STATE
+        .get()
+        .unwrap()
+        .full_code
+        .read()
+        .unwrap()
+        .clone()
 }
 
 #[put("/run/code", data = "<code>")]
@@ -59,11 +83,15 @@ pub fn get_speed() -> Value {
 }
 
 #[put("/run/speed", data = "<speed>")]
-pub fn set_speed(speed: String) {
+pub fn set_speed(speed: String) -> Status {
     let Ok(speed) = speed.parse() else {
-        return;
+        return Status::UnprocessableEntity;
     };
+    if speed < 1 || speed > 100 {
+        return Status::UnprocessableEntity;
+    }
     GLOBAL_STATE.get().unwrap().set_speed(speed);
+    Status::Ok
 }
 
 /*##############*\
@@ -74,12 +102,12 @@ pub fn set_speed(speed: String) {
 pub fn code_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
-        let mut last_sent = Instant::now();
+        let mut last_sent = *GLOBAL_STATE.get().unwrap().last_change.code.read().unwrap() - Duration::from_millis(1);
         loop {
             let last_change = *GLOBAL_STATE.get().unwrap().last_change.code.read().unwrap();
             if last_change > last_sent {
                 let code = (*GLOBAL_STATE.get().unwrap().full_code.read().unwrap()).clone();
-                yield Event::data(code);
+                yield Event::json(&code);
                 last_sent = Instant::now();
             }
             interval.tick().await;
@@ -91,12 +119,12 @@ pub fn code_event() -> EventStream![] {
 pub fn input_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
-        let mut last_sent = Instant::now();
+        let mut last_sent = *GLOBAL_STATE.get().unwrap().last_change.input.read().unwrap() - Duration::from_millis(1);
         loop {
             let last_change = *GLOBAL_STATE.get().unwrap().last_change.input.read().unwrap();
             if last_change > last_sent {
                 let input = (*GLOBAL_STATE.get().unwrap().input.read().unwrap()).clone();
-                yield Event::data(input);
+                yield Event::json(&input);
                 last_sent = Instant::now();
             }
             interval.tick().await;
@@ -108,12 +136,12 @@ pub fn input_event() -> EventStream![] {
 pub fn output_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
-        let mut last_sent = Instant::now();
+        let mut last_sent = *GLOBAL_STATE.get().unwrap().last_change.output.read().unwrap() - Duration::from_millis(1);
         loop {
             let last_change = *GLOBAL_STATE.get().unwrap().last_change.output.read().unwrap();
             if last_change > last_sent {
                 let output = (*GLOBAL_STATE.get().unwrap().output.read().unwrap()).clone();
-                yield Event::data(output);
+                yield Event::json(&output);
                 last_sent = Instant::now();
             }
             interval.tick().await;
@@ -125,7 +153,7 @@ pub fn output_event() -> EventStream![] {
 pub fn speed_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
-        let mut last_sent = Instant::now();
+        let mut last_sent = *GLOBAL_STATE.get().unwrap().last_change.speed.read().unwrap() - Duration::from_millis(1);
         loop {
             let last_change = *GLOBAL_STATE.get().unwrap().last_change.speed.read().unwrap();
             if last_change > last_sent {
@@ -142,7 +170,7 @@ pub fn speed_event() -> EventStream![] {
 pub fn state_event() -> EventStream![] {
     EventStream! {
         let mut interval = time::interval(Duration::from_millis(40));
-        let mut last_sent = Instant::now();
+        let mut last_sent = *GLOBAL_STATE.get().unwrap().last_change.state.read().unwrap() - Duration::from_millis(1);
         loop {
             let last_change = *GLOBAL_STATE.get().unwrap().last_change.state.read().unwrap();
             if last_change > last_sent {
@@ -168,6 +196,12 @@ pub fn disable_control() {
     GLOBAL_STATE.get().unwrap().send_hw(HWCmd::EndControl);
 }
 
+/// start / unpause interpreter
+/// 
+/// * if idle, a new run will be started
+/// * if paused, the active run will be unpaused
+/// 
+/// otherwise, an error is returned
 #[post("/ctrl/start")]
 pub fn start() -> BFRes {
     let glob = GLOBAL_STATE.get().unwrap();
@@ -175,9 +209,10 @@ pub fn start() -> BFRes {
     match *state {
         ItpState::Idle => {
             drop(state);
-            glob.send_hw(HWCmd::StartRun);
+            glob.send_hw(HWCmd::StartRun(false));
             Ok(())
-        },
+        }
+        ItpState::Startup => Err(BFError::StillStarting),
         ItpState::Running { ref mut paused, .. } => {
             if *paused {
                 *paused = false;
@@ -185,7 +220,7 @@ pub fn start() -> BFRes {
             } else {
                 Err(BFError::ItpRunning)
             }
-        },
+        }
         ItpState::Uncontrolled(_) => Err(BFError::ItpUncontrolled),
     }
 }
@@ -195,6 +230,7 @@ pub fn pause() -> BFRes {
     let glob = GLOBAL_STATE.get().unwrap();
     match *glob.state.write().unwrap() {
         ItpState::Idle => Err(BFError::ItpNotRunning),
+        ItpState::Startup => Err(BFError::ItpNotRunning),
         ItpState::Running { ref mut paused, .. } => {
             if !*paused {
                 *paused = true;
@@ -202,23 +238,33 @@ pub fn pause() -> BFRes {
             } else {
                 Err(BFError::ItpNotRunning)
             }
-        },
+        }
         ItpState::Uncontrolled(_) => Err(BFError::ItpUncontrolled),
     }
 }
 
+/// execute steps
+/// 
+/// if no number of steps is given, 1 will be used as a default.
+/// 
+/// * if idle, a new run will be started and immediately paused.
+/// additionally, as many steps as given will be executed.
+/// * if paused, the steps will be executed
+/// 
+/// otherwise, an error is returned
 #[post("/ctrl/step", data = "<steps>")]
 pub fn step(steps: Option<String>) -> BFRes {
     let steps: usize = steps.map(|n| n.parse().ok()).flatten().unwrap_or(1);
     let glob = GLOBAL_STATE.get().unwrap();
     match *glob.state.read().unwrap() {
         ItpState::Idle => {
-            glob.send_hw(HWCmd::StartRunPaused);
+            glob.send_hw(HWCmd::StartRun(true));
             for _ in 0..steps {
                 glob.send_hw(HWCmd::ExecStep);
             }
             Ok(())
-        },
+        }
+        ItpState::Startup => Err(BFError::StillStarting),
         ItpState::Running { ref paused, .. } => {
             if *paused {
                 for _ in 0..steps {
@@ -228,7 +274,7 @@ pub fn step(steps: Option<String>) -> BFRes {
             } else {
                 Err(BFError::ItpRunning)
             }
-        },
+        }
         ItpState::Uncontrolled(_) => Err(BFError::ItpUncontrolled),
     }
 }
@@ -238,10 +284,20 @@ pub fn reset() -> BFRes {
     let glob = GLOBAL_STATE.get().unwrap();
     match *glob.state.read().unwrap() {
         ItpState::Idle => Ok(()),
+        ItpState::Startup => Err(BFError::StillStarting),
         ItpState::Running { .. } => {
             glob.send_hw(HWCmd::Reset);
             Ok(())
-        },
+        }
         ItpState::Uncontrolled(_) => Err(BFError::ItpUncontrolled),
     }
+}
+
+/*###########*\
+##   other   ##
+\*###########*/
+
+#[get("/examples")]
+async fn get_examples() -> Option<NamedFile> {
+    NamedFile::open("examples.json").await.ok()
 }

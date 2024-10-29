@@ -1,8 +1,8 @@
-// this is a mock, unused can be safely ignored
-#![allow(unused)]
-use std::{sync::mpsc::Receiver, thread::{self, JoinHandle}, time::{Duration, Instant}};
-
-use bf_itp::Run;
+use std::{
+    sync::mpsc::Receiver,
+    thread::{self, JoinHandle},
+    time::{Duration, Instant},
+};
 
 use crate::{HWCmd, HWState, ItpState, GLOBAL_STATE};
 
@@ -10,22 +10,28 @@ pub fn start_hw_thread(tx: Receiver<HWCmd>) -> JoinHandle<()> {
     thread::spawn(move || {
         let glob = GLOBAL_STATE.get().unwrap();
         loop {
+            // first, handle all user-inputted things to do
             while let Ok(cmd) = tx.try_recv() {
                 handle_cmd(cmd);
             }
+            // then, enter the regular loop
             let state = glob.state.read().unwrap();
             match *state {
                 ItpState::Running { paused, .. } if !paused => {
+                    // itp is currently running -> execute the next step and wait depending on the global speed
                     drop(state);
                     handle_cmd(HWCmd::ExecStep);
-                    let tick = Duration::from_secs_f64(1.0 / glob.speed.read().unwrap().pow(3) as f64);
+                    let tick = Duration::from_secs_f64(
+                        1.0 / (*glob.speed.read().unwrap() as u32).pow(3) as f64,
+                    );
                     thread::sleep(tick);
-                },
+                }
+                // HW: if uncontrolled, i/o must be handled
                 _ => {
-                    // if not mocked, i/o handler needs to be active when in uncontrolled state
+                    // itp is not running -> wait for 40ms so the cpu can rest a bit
                     drop(state);
                     thread::sleep(Duration::from_millis(40))
-                },
+                }
             }
         }
     })
@@ -37,67 +43,50 @@ fn handle_cmd(cmd: HWCmd) {
         HWCmd::EndControl => {
             *glob.hw_state.write().unwrap() = HWState::Regular;
             glob.set_state(ItpState::Uncontrolled(0));
-        },
+        }
         HWCmd::StartControl => {
             *glob.hw_state.write().unwrap() = HWState::Regular;
             glob.set_state(ItpState::Idle);
-        },
+        }
         HWCmd::Program => {
             // mocked
-        },
-        HWCmd::StartRun => {
-            // control -> low
-            // program()
-            // control -> high
-            // control reset -> high -> low
-            *glob.hw_state.write().unwrap() = HWState::Startup;
-            *glob.last_change.state.write().unwrap() = Instant::now();
+        }
+        HWCmd::StartRun(paused) => {
+            // HW: control -> low
+            // HW: program()
+            // HW: control -> high
+            // HW: control reset -> high -> low
+            glob.set_state(ItpState::Startup);
             // wait for arbitrary startup
             thread::sleep(Duration::from_secs(3));
-            glob.itp_started(false);
-        },
-        HWCmd::StartRunPaused => {
-            *glob.hw_state.write().unwrap() = HWState::Startup;
-            *glob.last_change.state.write().unwrap() = Instant::now();
-            // wait for arbitrary startup
-            thread::sleep(Duration::from_secs(3));
-            glob.itp_started(true);
-        },
+            glob.itp_started(paused);
+        }
         HWCmd::ExecStep => {
-            //println!("step executing");
-            // io betrachten
-            // control clock -> high -> low
-            // schauen ob neuer i/o state existiert
+            // HW: io betrachten
+            // HW: control clock -> high -> low
+            // HW: schauen ob neuer i/o state existiert
             let mut state = glob.state.write().unwrap();
-            //println!("lock acquired");
             match *state {
                 ItpState::Running { ref mut run, .. } => {
-                    //println!("step 1");
                     let old_out_len = run.out.len();
                     let finished = run.step();
-                    //println!("step 2");
                     *glob.last_change.state.write().unwrap() = Instant::now();
-                    //println!("step 3");
                     if old_out_len != run.out.len() {
-                        if let Ok(out) = String::from_utf8(run.out.clone()) {
-                            glob.set_output(out);
-                        }
+                        glob.set_output(String::from_utf8_lossy(&run.out).into_owned());
                     }
-                    //println!("step 4");
                     drop(state);
                     if finished {
                         *glob.hw_state.write().unwrap() = HWState::Regular;
-                        glob.set_state(ItpState::Idle); 
+                        glob.set_state(ItpState::Idle);
                         println!("run finished");
                     }
-                    //println!("step 5");
-                },
+                }
                 _ => eprintln!("cannot execute step if itp is not running"),
             }
-        },
+        }
         HWCmd::Reset => {
             // control reset -> high -> low
             glob.set_state(ItpState::Idle);
-        },
+        }
     }
 }

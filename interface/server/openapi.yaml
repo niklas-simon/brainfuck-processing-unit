@@ -1,7 +1,7 @@
 openapi: 3.1.0
 info:
   title: Brainfuck Interpreter
-  version: 0.3.0
+  version: 0.3.1
 servers:
   - url: https://example.com/bf-itp
 tags:
@@ -42,7 +42,7 @@ paths:
         200:
           description: new code was set successfully
         422:
-          description: the interpreter is currently running
+          description: the interpreter is currently running or the code is incorrectly nested
   '/api/sse/code':
     get:
       summary: subscribe to code changes
@@ -54,7 +54,7 @@ paths:
         '200':
           description: sse for code changes
           content:
-            text/plain: 
+            application/json: 
               schema:
                 type: string
   '/api/run/input':
@@ -99,7 +99,7 @@ paths:
         '200':
           description: sse for input changes
           content:
-            text/plain: 
+            application/json: 
               schema:
                 type: string
   '/api/run/output':
@@ -127,7 +127,7 @@ paths:
         '200':
           description: sse for output changes
           content:
-            text/plain:
+            application/json:
               schema:
                 type: string
   '/api/run/state':
@@ -340,5 +340,8 @@ components:
           - running
           - paused
           - uncontrolled
+          - jumping
+          - wait_input
+          - output_ready
       required:
       - control
