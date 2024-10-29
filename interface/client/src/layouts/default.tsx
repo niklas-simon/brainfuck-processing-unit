@@ -1,6 +1,8 @@
+import ErrorTooltip from "@/components/error-tooltip";
 import { Dropdown, DropdownTrigger, DropdownMenu, DropdownItem } from "@nextui-org/dropdown";
 import { Link } from "@nextui-org/link";
 import { Navbar, NavbarBrand, NavbarContent, NavbarItem } from "@nextui-org/navbar";
+import { useEffect, useState } from "react";
 import { Menu } from "react-feather";
 import { useLocation } from "react-router-dom";
 
@@ -33,6 +35,23 @@ export default function DefaultLayout({
     children: React.ReactNode;
 }) {
     const location = useLocation();
+
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const event = e as CustomEvent;
+            if (event.detail instanceof Event) {
+                setError("unknown event error occured");
+            } else {
+                setError(event.detail.message);
+            }
+        };
+
+        window.addEventListener("requestError", handler);
+
+        return () => window.removeEventListener("requestError", handler);
+    }, []);
 
     return (
         <div className="min-w-screen min-h-screen flex flex-col items-center">
@@ -71,6 +90,9 @@ export default function DefaultLayout({
             <div className="flex-1 flex flex-col gap-4 p-4 max-w-[1024px] w-full">
                 {children}
             </div>
+            <ErrorTooltip placement="top-end" text={error} onClose={() => setError(null)}>
+                <div style={{border: "1px solid red"}} className="absolute bottom-0 right-0"></div>
+            </ErrorTooltip>
         </div>
     );
 }

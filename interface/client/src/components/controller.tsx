@@ -7,6 +7,7 @@ import { Spinner } from "@nextui-org/spinner";
 import { Switch } from "@nextui-org/switch";
 import { useEffect, useState } from "react";
 import { Pause, Play, RefreshCcw, SkipForward } from "react-feather";
+import ErrorTooltip from "./error-tooltip";
 
 const rs = RestService.getInstance();
 
@@ -17,6 +18,8 @@ export default function Controller() {
     const [isSending, setSending] = useState(false);
     const [isSetSpeed, setSetSpeed] = useState(false);
 
+    const [controlError, setControlError] = useState<string | null>(null);
+
     useEffect(() => {
         const stateProfile = rs.onStateChange(setState);
         const speedProfile = rs.onSpeedChange(setSpeed);
@@ -26,6 +29,12 @@ export default function Controller() {
             rs.removeListener(speedProfile);
         }
     }, []);
+
+    const controlAction = async (action: Action) => {
+        setSending(true);
+        await rs.controlAction(action).catch(e => setControlError(e.message));
+        setSending(false);
+    }
 
     return <div className="flex flex-col gap-4">
         <Skeleton isLoaded={state !== null} className="w-min">
@@ -45,32 +54,34 @@ export default function Controller() {
                 </div>
         </Skeleton>
         <Skeleton isLoaded={state !== null} className="w-min rounded-medium">
-            <ButtonGroup>
-                <Button isIconOnly color="success" variant="ghost"
-                    isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
-                    isLoading={isSending}
-                    onClick={() => rs.controlAction(Action.PLAY)}>
-                    <Play/>
-                </Button>
-                <Button isIconOnly color="warning" variant="ghost"
-                    isDisabled={["idle", "paused", "uncontrolled"].includes(state?.control_state || "")}
-                    isLoading={isSending}
-                    onClick={() => rs.controlAction(Action.PAUSE)}>
-                    <Pause/>
-                </Button>
-                <Button isIconOnly color="primary" variant="ghost"
-                    isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
-                    isLoading={isSending}
-                    onClick={() => rs.controlAction(Action.STEP)}>
-                    <SkipForward/>
-                </Button>
-                <Button isIconOnly color="danger" variant="ghost"
-                    isDisabled={"uncontrolled" === state?.control_state}
-                    isLoading={isSending}
-                    onClick={() => rs.controlAction(Action.RESET)}>
-                    <RefreshCcw className="text-danger-500 hover:text-danger-foreground"/>
-                </Button>
-            </ButtonGroup>
+            <ErrorTooltip text={controlError} placement="top-start" onClose={() => setControlError(null)}>
+                <ButtonGroup>
+                        <Button isIconOnly color="success" variant="ghost"
+                            isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
+                            isLoading={isSending}
+                            onClick={() => controlAction(Action.PLAY)}>
+                            <Play/>
+                        </Button>
+                    <Button isIconOnly color="warning" variant="ghost"
+                        isDisabled={["idle", "paused", "uncontrolled"].includes(state?.control_state || "")}
+                        isLoading={isSending}
+                        onClick={() => controlAction(Action.PAUSE)}>
+                        <Pause/>
+                    </Button>
+                    <Button isIconOnly color="primary" variant="ghost"
+                        isDisabled={state?.control_state === "uncontrolled" || !["paused", "idle"].includes(state?.control_state || "")}
+                        isLoading={isSending}
+                        onClick={() => controlAction(Action.STEP)}>
+                        <SkipForward/>
+                    </Button>
+                    <Button isIconOnly color="danger" variant="ghost"
+                        isDisabled={"uncontrolled" === state?.control_state}
+                        isLoading={isSending}
+                        onClick={() => controlAction(Action.RESET)}>
+                        <RefreshCcw className="text-danger-500 hover:text-danger-foreground"/>
+                    </Button>
+                </ButtonGroup>
+            </ErrorTooltip>
         </Skeleton>
         <Skeleton isLoaded={speed !== null}>
             {isSetSpeed ?

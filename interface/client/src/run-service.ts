@@ -1,6 +1,11 @@
 const _fetch = async (url: string, init?: RequestInit) => {
-    //await new Promise(res => setTimeout(() => res(true), Math.random() * 2000));
-    return fetch(url, init);
+    return fetch(url, init).then(async res => {
+        if (res.ok) {
+            return res;
+        }
+        const text = await res.text();
+        throw {message: `${res.status}: ${res.statusText}${text ? ` (${text})` : ""}`};
+    });
 }
 
 export interface Example {
@@ -39,7 +44,9 @@ const actionMap = new Map([
     [Action.RESET, "reset"]
 ]);
 
-const onError = (e: Event) => console.error(e);
+const onError = (e: Event | {message: string} | Error) => window.dispatchEvent(new CustomEvent("requestError", {
+    detail: e
+}));
 
 export default class RestService {
     private static instance?: RestService;
@@ -67,7 +74,7 @@ export default class RestService {
     private speedEvent = new EventSource("/api/sse/speed");
 
     private constructor() {
-        [this.programEvent, this.inputEvent, this.outputEvent, this.stateEvent, this.speedEvent].forEach(e => e.addEventListener("error", onError));
+        [this.programEvent, this.inputEvent, this.outputEvent, this.stateEvent, this.speedEvent].forEach(e => e.addEventListener("error", e => onError(e)));
         window.onbeforeunload = () => [this.programEvent, this.inputEvent, this.outputEvent, this.stateEvent, this.speedEvent].forEach(e => e.close());
 
         this.programEvent.addEventListener("message", e => {
@@ -108,7 +115,7 @@ export default class RestService {
                     detail: this.program
                 }));
             }
-        });
+        }).catch(onError);
         _fetch("/api/run/input").then(res => res.text()).then(res => {
             if (!this.input) {
                 this.input = res;
@@ -116,7 +123,7 @@ export default class RestService {
                     detail: this.input
                 }));
             }
-        });
+        }).catch(onError);
         _fetch("/api/run/output").then(res => res.text()).then(res => {
             if (!this.output) {
                 this.output = res;
@@ -124,7 +131,7 @@ export default class RestService {
                     detail: this.output
                 }));
             }
-        });
+        }).catch(onError);
         _fetch("/api/run/state").then(res => res.json() as Promise<State>).then(res => {
             if (!this.state) {
                 this.state = res;
@@ -132,7 +139,7 @@ export default class RestService {
                     detail: this.state
                 }));
             }
-        });
+        }).catch(onError);
         _fetch("/api/run/speed").then(res => res.text()).then(res => parseInt(res)).then(res => {
             if (!this.speed) {
                 this.speed = res;
@@ -140,7 +147,7 @@ export default class RestService {
                     detail: this.speed
                 }));
             }
-        });
+        }).catch(onError);
     }
 
     public static getInstance() {

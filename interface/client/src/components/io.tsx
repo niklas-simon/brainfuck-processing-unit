@@ -3,6 +3,7 @@ import { Button } from "@nextui-org/button";
 import { Textarea } from "@nextui-org/input";
 import { Skeleton } from "@nextui-org/skeleton";
 import { useEffect, useState } from "react";
+import ErrorTooltip from "./error-tooltip";
 
 const rs = RestService.getInstance();
 
@@ -11,6 +12,8 @@ export default function IO() {
     const [input, setInput] = useState<string | null>(rs.getInput());
 
     const [isSending, setSending] = useState(false);
+
+    const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
         const inputProfile = rs.onInputChange(setInput);
@@ -36,16 +39,18 @@ export default function IO() {
         </Skeleton>
         <div className="flex flex-row gap-4 items-center">
             <Skeleton isLoaded={input !== null} className="rounded-medium">
-                <Button variant="light" color="primary" isLoading={isSending} onClick={async () => {
-                    setSending(true);
-                    await rs.setInput(input || "");
-                    setSending(false);
-                }}>Send</Button>
+                <ErrorTooltip text={error} onClose={() => setError(null)} placement="top-start">
+                    <Button variant="light" color="primary" isLoading={isSending} onClick={async () => {
+                        setSending(true);
+                        await rs.setInput(input || "").catch(e => setError(e.message));
+                        setSending(false);
+                    }}>Send</Button>
+                </ErrorTooltip>
             </Skeleton>
             <Skeleton isLoaded={input !== null} className="rounded-medium">
                 <Button variant="light" color="danger" isLoading={isSending} onClick={async () => {
                     setSending(true);
-                    await rs.setInput("");
+                    await rs.setInput("").catch(e => setError(e.message));
                     setSending(false);
                 }}>Clear</Button>
             </Skeleton>

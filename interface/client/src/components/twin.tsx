@@ -86,7 +86,7 @@ export default function Twin() {
                         <Tape title="Memory" data={state?.tape?.map((v, i) => {
                             const head = state.head || 0;
                             return {
-                                address: head - 3 + i,
+                                address: (head - 3 + i + 0x8000) % 0x8000,
                                 value: v
                             }
                         }) || []}/>
