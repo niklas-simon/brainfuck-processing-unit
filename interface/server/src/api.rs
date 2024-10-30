@@ -209,8 +209,12 @@ pub fn start() -> BFRes {
     match *state {
         ItpState::Idle => {
             drop(state);
-            glob.send_hw(HWCmd::StartRun(false));
-            Ok(())
+            if glob.full_code.read().unwrap().is_empty() {
+                Err(BFError::MissingCode)
+            } else {
+                glob.send_hw(HWCmd::StartRun(false));
+                Ok(())
+            }
         }
         ItpState::Startup => Err(BFError::StillStarting),
         ItpState::Running { ref mut paused, .. } => {
@@ -258,18 +262,17 @@ pub fn step(steps: Option<String>) -> BFRes {
     let glob = GLOBAL_STATE.get().unwrap();
     match *glob.state.read().unwrap() {
         ItpState::Idle => {
-            glob.send_hw(HWCmd::StartRun(true));
-            for _ in 0..steps {
-                glob.send_hw(HWCmd::ExecStep);
+            if glob.full_code.read().unwrap().is_empty() {
+                return Err(BFError::MissingCode);
             }
+            glob.send_hw(HWCmd::StartRun(true));
+            glob.send_hw(HWCmd::ExecStep(steps, true));
             Ok(())
         }
         ItpState::Startup => Err(BFError::StillStarting),
         ItpState::Running { ref paused, .. } => {
             if *paused {
-                for _ in 0..steps {
-                    glob.send_hw(HWCmd::ExecStep);
-                }
+                glob.send_hw(HWCmd::ExecStep(steps, true));
                 Ok(())
             } else {
                 Err(BFError::ItpRunning)
