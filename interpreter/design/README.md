@@ -7,6 +7,7 @@
 - `OUT` Ouput Register
 - `OE` Output Enable
 - `OC` Output Confirmed
+- `OR` Output Ready
 - `IN` Input Register
 - `IE` Input Enable
 - `PI` Push Input

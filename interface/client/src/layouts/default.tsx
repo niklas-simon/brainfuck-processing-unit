@@ -91,7 +91,7 @@ export default function DefaultLayout({
                 {children}
             </div>
             <ErrorTooltip placement="top-end" text={error} onClose={() => setError(null)}>
-                <div style={{border: "1px solid red"}} className="absolute bottom-0 right-0"></div>
+                <div className="absolute bottom-0 right-0"></div>
             </ErrorTooltip>
         </div>
     );
