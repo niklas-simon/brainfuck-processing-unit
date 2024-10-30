@@ -75,11 +75,11 @@ const TAPE_LEN: usize = 32768;
 #[derive(Debug)]
 pub struct Run {
     tape: [u8; TAPE_LEN],
-    pc: usize,
+    pub pc: usize,
     pub ic: usize,
     head: usize,
-    code: Vec<BFCommand>,
-    jumping: Option<usize>,
+    pub code: Vec<BFCommand>,
+    pub jumping: Option<usize>,
     stack: Vec<usize>,
     pub inp: Vec<u8>,
     pub out: Vec<u8>,
@@ -222,8 +222,7 @@ impl Run {
                 }
             }
         }
-        self.pc += 1;
-        self.pc == self.code.len()
+        self.pc + 1 == self.code.len()
     }
 }
 

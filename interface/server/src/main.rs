@@ -28,10 +28,6 @@ mod hw;
 
 // have a cat
 
-// TODOs:
-// - return i/o run_state even when mocked
-// - client: show error responses
-
 pub type BFRes = Result<(), BFError>;
 
 #[rocket::main]
@@ -248,6 +244,8 @@ pub enum BFError {
     ItpRunning,
     /// interpreter not running
     ItpNotRunning,
+    /// no code to run
+    MissingCode,
     /// waiting for startup to finish
     StillStarting,
 }
@@ -269,6 +267,7 @@ impl<'r> Responder<'r, 'static> for BFError {
             BFError::ItpUncontrolled => (Status::BadRequest, "control is currently not enabled"),
             BFError::ItpRunning => (Status::BadRequest, "interpreter is currently running"),
             BFError::ItpNotRunning => (Status::BadRequest, "interpreter is currently not running"),
+            BFError::MissingCode => (Status::BadRequest, "enter some code to start a run"),
             BFError::StillStarting => (Status::BadRequest, "interpreter is still starting"),
         };
         Response::build()
@@ -291,8 +290,10 @@ pub enum HWCmd {
     ///
     /// can start paused (with /api/ctrl/step) or running (with /api/ctrl/start)
     StartRun(bool),
-    /// execute a single step
-    ExecStep,
+    /// execute steps
+    /// 
+    /// contains number of steps + whether pc should be increased
+    ExecStep(usize, bool),
     /// reset interpreter
     Reset,
 }
