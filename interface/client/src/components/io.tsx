@@ -1,4 +1,4 @@
-import RestService from "@/run-service";
+import RestService from "@/rest-service";
 import { Button } from "@nextui-org/button";
 import { Textarea } from "@nextui-org/input";
 import { Skeleton } from "@nextui-org/skeleton";

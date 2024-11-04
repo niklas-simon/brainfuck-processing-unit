@@ -3,7 +3,7 @@ import Tape from "./tape";
 import { Card, CardBody } from "@nextui-org/card";
 import { Chip } from "@nextui-org/chip";
 import { useEffect, useState } from "react";
-import RestService, { State } from "@/run-service";
+import RestService, { State } from "@/rest-service";
 import { Skeleton } from "@nextui-org/skeleton";
 
 const states = [
@@ -42,17 +42,14 @@ const states = [
 const rs = RestService.getInstance();
 
 export default function Twin() {
-    const [program, setProgram] = useState<string | null>(rs.getProgram());
     const [input, setInput] = useState<string | null>(rs.getInput());
     const [state, setState] = useState<State | null>(rs.getState());
 
     useEffect(() => {
-        const programProfile = rs.onProgramChange(setProgram);
         const inputProfile = rs.onInputChange(setInput);
         const stateProfile = rs.onStateChange(setState);
         
         return () => {
-            rs.removeListener(programProfile);
             rs.removeListener(inputProfile);
             rs.removeListener(stateProfile);
         }
@@ -104,20 +101,16 @@ export default function Twin() {
                         <Card className="bg-content2 overflow-visible" radius="none">
                             <CardBody className="flex flex-col items-center overflow-visible gap-4">
                                 <Tape title="Program" data={Array.from(new Array(7)).map((_, i) => {
-                                    if (!state || !program) {
+                                    if (!state?.code) {
                                         return null;
                                     }
-                                    const pc = state.code?.pc || 0;
-                                    if (pc - 3 + i < 0) {
+                                    const address = state.code.pc - 3 + i;
+                                    const index = address - state.code.offset;
+                                    if (!state.code.fragment[index]) {
                                         return null;
                                     }
-                                    if (pc - 3 + i >= program.length) {
-                                        return null;
-                                    }
-                                    return {
-                                        address: pc - 3 + i,
-                                        value: program[pc - 3 + i]
-                                    }
+                                    const value = state.code.fragment[index];
+                                    return { address, value }
                                 })}/>
                                 <Tape title="Memory" data={state?.tape?.map((v, i) => {
                                     const head = state.head || 0;

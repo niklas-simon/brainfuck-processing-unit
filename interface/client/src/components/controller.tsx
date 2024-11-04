@@ -1,4 +1,4 @@
-import RestService, { Action, State } from "@/run-service";
+import RestService, { Action, State } from "@/rest-service";
 import { ButtonGroup, Button } from "@nextui-org/button";
 import { Progress } from "@nextui-org/progress";
 import { Skeleton } from "@nextui-org/skeleton";
