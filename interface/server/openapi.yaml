@@ -349,3 +349,4 @@ components:
           - output_ready
       required:
       - control
+      - code

@@ -112,6 +112,22 @@ pub struct CodeView {
     fragment: String,
 }
 
+impl CodeView {
+    pub fn new(code: &[impl ToString], pc: usize) -> Self {
+        let start = Run::VIEW_SIZE.max(pc) - Run::VIEW_SIZE;
+        let end = code.len().min(pc + Run::VIEW_SIZE + 1);
+        let code_frag: String = code[start..end]
+            .iter()
+            .map(ToString::to_string)
+            .collect();
+        Self {
+            fragment: code_frag,
+            offset: start,
+            pc,
+        }
+    }
+}
+
 impl Run {
     /// view size for tape and code
     ///
@@ -135,20 +151,6 @@ impl Run {
         })
     }
 
-    fn get_code_view(&self) -> CodeView {
-        let start = Self::VIEW_SIZE.max(self.pc) - Self::VIEW_SIZE;
-        let end = self.code.len().min(self.pc + Self::VIEW_SIZE + 1);
-        let code_frag: String = self.code[start..end]
-            .iter()
-            .map(<BFCommand as ToString>::to_string)
-            .collect();
-        CodeView {
-            fragment: code_frag,
-            offset: start,
-            pc: self.pc,
-        }
-    }
-
     pub fn view(&self, ctrl_state: &str, run_state: &str) -> RunView {
         let mut tape_slice = Vec::new();
         // conversion between isize and usize needed for correct wrapping
@@ -159,7 +161,7 @@ impl Run {
         }
         RunView {
             tape: tape_slice,
-            code: self.get_code_view(),
+            code: CodeView::new(&self.code, self.pc),
             ic: self.ic,
             head: self.head,
             jumping: self.jumping,

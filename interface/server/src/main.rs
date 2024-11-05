@@ -7,7 +7,7 @@ use std::{
     time::Instant,
 };
 
-use bf_itp::Run;
+use bf_itp::{CodeView, Run};
 use rocket::{
     fs::{relative, FileServer},
     http::{ContentType, Status},
@@ -171,6 +171,7 @@ impl Global {
         match *self.state.read().unwrap() {
             ItpState::Idle => {
                 self.set_code(code);
+                *self.last_change.state.write().unwrap() = Instant::now();
                 Ok(())
             }
             ItpState::Startup => Err(BFError::CodeChanged),
@@ -201,7 +202,9 @@ impl Global {
             }
             ItpState::Uncontrolled(_) => "uncontrolled",
         };
-        let no_run = json!({"control_state": ctrl_state});
+        let code_prev: Vec<_> = self.full_code.read().unwrap().chars().filter(|c| ['+', '-', '<', '>', '[', ']', ',', '.'].contains(c)).collect();
+        let code_view = CodeView::new(&code_prev, 0);
+        let no_run = json!({"control_state": ctrl_state, "code": code_view});
         if let ItpState::Running { ref run, .. } = *self.state.read().unwrap() {
             serde_json::to_value(run.view(ctrl_state, run_state)).unwrap_or_else(|_| no_run)
         } else {
