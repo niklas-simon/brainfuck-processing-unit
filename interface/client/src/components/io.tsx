@@ -29,7 +29,7 @@ export default function IO() {
         <Skeleton isLoaded={output !== null}>
             <Textarea readOnly label="Output" radius="none"
                 className="font-mono" value={output || ""} 
-                placeholder="Output from the machine will be displayed here"/>
+                placeholder="Output from the BFPU will be displayed here"/>
         </Skeleton>
         <Skeleton isLoaded={input !== null}>
             <Textarea radius="none" label="Input"

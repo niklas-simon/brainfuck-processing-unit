@@ -60,7 +60,7 @@ export default function DefaultLayout({
                     <Link className="flex flex-row" color="foreground" href="/">
                         <img src="icon.png" className="h-[2em] mr-2"/>
                         <img src="dhge_logo_writing.png" className="h-[2em] mr-4"/>
-                        <p className="font-bold text-inherit">Brainfuck Interpreter</p>
+                        <p className="font-bold text-inherit">BFPU Control Server</p>
                     </Link>
                 </NavbarBrand>
                 <NavbarContent className="hidden md:flex lg:hidden gap-4" justify="end">

@@ -28,7 +28,7 @@ const states = [
         on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "wait_input"
     },
     {
-        text: "Waiting for output",
+        text: "Output ready",
         color: "danger",
         on: state => ["running", "paused"].includes(state.control_state) && state.run_state === "output_ready"
     },

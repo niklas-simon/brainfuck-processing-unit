@@ -50,7 +50,7 @@ export default function Controller() {
                         setSending(false);
                     }}></Switch>
                 }
-                <span>Enable machine control</span>
+                <span>Enable BFPU control</span>
                 </div>
         </Skeleton>
         <Skeleton isLoaded={state !== null} className="w-min rounded-medium">
