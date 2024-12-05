@@ -17,13 +17,6 @@ use rocket::{
 use serde_json::{json, Value};
 
 mod api;
-// attempt to check whether this is a raspberrry pi or not.
-// if it is, use the 'real' module for hardware interaction.
-// otherwise, use a mock.
-#[cfg(all(target_arch = "aarch64", target_env = "gnu"))]
-mod hw;
-#[cfg(not(all(target_arch = "aarch64", target_env = "gnu")))]
-#[path = "hw_mock.rs"]
 mod hw;
 
 // have a cat

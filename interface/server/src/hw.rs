@@ -1,198 +1,196 @@
 use std::{
+    sync::mpsc::Receiver,
     thread::{self, JoinHandle},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
-use crate::GLOBAL_STATE;
-use rppal::gpio::{Gpio, IoPin, Level, Mode, OutputPin};
+use bf_itp::BFCommand;
 
-pub fn start_hw_thread() -> JoinHandle<()> {
-    thread::spawn(|| run_hw("TODO"))
+use crate::{HWCmd, HWState, ItpState, GLOBAL_STATE};
+
+macro_rules! raspi {
+    ($($body:tt)*) => {
+        #[cfg(all(target_arch = "aarch64", target_env = "gnu"))]
+        $($body)*
+    };
 }
 
-/// DO NOT USE
-///
-/// just a general idea of how to run hw communication
-pub fn run_hw(code: &str) {
-    let mut ports = GLOBAL_STATE.ports.lock().unwrap();
-    // write program to eeprom
-    ports.control.set_control(true);
-    ports.program.write_program(code);
-    loop {
-        let Some(speed) = *GLOBAL_STATE.speed.read().unwrap() else {
-            thread::sleep(Duration::from_millis(10));
-            continue;
-        };
-        ports.control.step();
-        ports.io.handle_io(|| 0);
-        let wait_time = Duration::from_secs_f64(1.0 / speed.pow(3) as f64);
-        thread::sleep(wait_time);
+macro_rules! not_raspi {
+    ($($body:tt)*) => {
+        #[cfg(not(all(target_arch = "aarch64", target_env = "gnu")))]
+        $($body)*
+    };
+}
+
+raspi!(mod ports;);
+raspi!(use ports::Ports;);
+not_raspi! {
+    struct Ports;
+}
+
+pub fn start_hw_thread(tx: Receiver<HWCmd>) -> JoinHandle<()> {
+    raspi! {
+        let mut ports = Ports::new().unwrap();
     }
-}
-
-pub fn bits(byte: u8) -> [Level; 8] {
-    let mut res = [Level::Low; 8];
-    for i in 0..8 {
-        res[i] = Level::from((byte >> i) & 1);
-    }
-    res
-}
-
-pub fn byte(bits: [Level; 8]) -> u8 {
-    let mut val = 0;
-    for i in 0..8 {
-        val |= (bits[i] as u8) << i;
-    }
-    val
-}
-
-pub fn pulse_io(pin: &mut IoPin) {
-    pin.set_high();
-    thread::sleep(Duration::from_nanos(200));
-    pin.set_low();
-}
-
-pub fn pulse(pin: &mut OutputPin) {
-    pin.set_high();
-    thread::sleep(Duration::from_nanos(200));
-    pin.set_low();
-}
-
-pub struct IOPort {
-    pins: [rppal::gpio::IoPin; 11],
-}
-pub struct ControlPort {
-    pins: [rppal::gpio::OutputPin; 3],
-}
-pub struct ProgramPort {
-    pins: [rppal::gpio::OutputPin; 3],
-}
-
-impl IOPort {
-    pub fn new() -> Self {
-        let gpio = Gpio::new().unwrap();
-        Self {
-            pins: [
-                // todo: set pin numbers
-                gpio.get(0).unwrap().into_io(Mode::Input),
-                gpio.get(1).unwrap().into_io(Mode::Input),
-                gpio.get(2).unwrap().into_io(Mode::Output),
-                gpio.get(3).unwrap().into_io(Mode::Input),
-                gpio.get(4).unwrap().into_io(Mode::Input),
-                gpio.get(5).unwrap().into_io(Mode::Input),
-                gpio.get(6).unwrap().into_io(Mode::Input),
-                gpio.get(7).unwrap().into_io(Mode::Input),
-                gpio.get(8).unwrap().into_io(Mode::Input),
-                gpio.get(9).unwrap().into_io(Mode::Input),
-                gpio.get(10).unwrap().into_io(Mode::Input),
-                // pin 12 ist nur ground
-            ],
+    thread::spawn(move || {
+        let glob = GLOBAL_STATE.get().unwrap();
+        not_raspi! {
+            let mut ports = Ports;
         }
-    }
-
-    fn set_pinmode(&mut self, mode: Mode) {
-        self.pins[1].set_mode(mode);
-        for pin in 3..11 {
-            self.pins[pin].set_mode(mode);
-        }
-    }
-
-    pub fn handle_io(&mut self, inp: impl FnOnce() -> u8) -> Option<u8> {
-        // Input: writing to pins
-        if self.pins[0].read() == Level::High {
-            self.set_pinmode(Mode::Output);
-            let data = bits(inp());
-            for i in 0..8 {
-                self.pins[i + 3].write(data[i]);
+        loop {
+            // first, handle all user-inputted things to do
+            while let Ok(cmd) = tx.try_recv() {
+                handle_cmd(cmd, &mut ports);
             }
-            // pulse for push input
-            pulse_io(&mut self.pins[1]);
-            self.set_pinmode(Mode::Input);
-        }
-        // Output: reading from pins
-        if self.pins[1].read() == Level::High {
-            let mut val = [Level::Low; 8];
-            for i in 0..8 {
-                val[i] = self.pins[i + 3].read();
-            }
-            // pulse for output confirmed
-            pulse_io(&mut self.pins[2]);
-            return Some(byte(val));
-        }
-        None
-    }
-}
-
-impl ControlPort {
-    pub fn new() -> Self {
-        let gpio = Gpio::new().unwrap();
-        Self {
-            pins: [
-                // todo: set pin numbers
-                gpio.get(0).unwrap().into_output(),
-                gpio.get(1).unwrap().into_output(),
-                gpio.get(2).unwrap().into_output(),
-                // pin 12 ist nur ground
-            ],
-        }
-    }
-
-    pub fn set_control(&mut self, level: bool) {
-        self.pins[0].write(level.into());
-    }
-
-    pub fn reset(&mut self) {
-        pulse(&mut self.pins[1]);
-    }
-
-    pub fn step(&mut self) {
-        pulse(&mut self.pins[2]);
-    }
-}
-
-impl ProgramPort {
-    pub fn new() -> Self {
-        let gpio = Gpio::new().unwrap();
-        Self {
-            pins: [
-                // todo: set pin numbers
-                gpio.get(0).unwrap().into_output(),
-                gpio.get(1).unwrap().into_output(),
-                gpio.get(2).unwrap().into_output(),
-                // pin 12 ist nur ground
-            ],
-        }
-    }
-
-    pub fn write_program(&mut self, code: &str) {
-        self.pins[0].set_high();
-        let to_write = code
-            .chars()
-            .filter(|c| ['+', '-', '<', '>', '.', ',', '[', ']'].contains(c))
-            .map(|c| c as u8);
-        for byte in to_write {
-            let b = bits(byte);
-            for i in (0..8).rev() {
-                self.pins[2].write(b[i]);
-                pulse(&mut self.pins[1]);
+            // then, enter the regular loop
+            let state = glob.state.read().unwrap();
+            match *state {
+                ItpState::Running { paused, .. } if !paused => {
+                    // itp is currently running -> execute the next step and wait depending on the global speed
+                    drop(state);
+                    handle_cmd(HWCmd::ExecStep(1, false), &mut ports);
+                    let dur = speed_tick(*glob.speed.read().unwrap());
+                    thread::sleep(dur);
+                    let mut state = glob.state.write().unwrap();
+                    let ItpState::Running { ref mut run, .. } = *state else {
+                        thread::sleep(dur);
+                        continue;
+                    };
+                    run.pc += 1;
+                    drop(state);
+                    *glob.last_change.state.write().unwrap() = Instant::now();
+                    thread::sleep(dur);
+                }
+                ItpState::Uncontrolled(ic) => {
+                    raspi! {{
+                        drop(state);
+                        if let Some(outp) = ports.handle_io(|| {
+                            let inp = glob.input.read().unwrap();
+                            let res = *inp.as_bytes().get(ic).unwrap_or(&0);
+                            let l = inp.len();
+                            drop(inp);
+                            let mut state = glob.state.write().unwrap();
+                            let ItpState::Uncontrolled(ref mut ic) = *state else {
+                                return res;
+                            };
+                            *ic = (*ic + 1) % (l + 1);
+                            drop(state);
+                            res
+                        }) {
+                            glob.output.write().unwrap().push(outp as char);
+                        }
+                    }}
+                    not_raspi! {{
+                        // prevent unused warning when mocked
+                        let _ = ic;
+                        drop(state);
+                        thread::sleep(Duration::from_millis(40))
+                    }}
+                }
+                _ => {
+                    // itp is not running -> wait for 40ms so the cpu can rest a bit
+                    drop(state);
+                    thread::sleep(Duration::from_millis(40))
+                }
             }
         }
-        self.pins[0].set_low();
+    })
+}
+
+fn speed_tick(speed: u8) -> Duration {
+    Duration::from_secs_f64(0.5 / 1_000_000.0_f64.powf((speed as f64 - 1.0) / 99.0))
+}
+
+fn handle_cmd(cmd: HWCmd, ports: &mut Ports) {
+    not_raspi! {
+        // prevent unused warning when mocked
+        let _ = ports;
     }
-}
-
-pub struct Ports {
-    pub io: IOPort,
-    pub program: ProgramPort,
-    pub control: ControlPort,
-}
-
-impl Ports {
-    pub fn new() -> Self {
-        Self {
-            control: ControlPort::new(),
-            io: IOPort::new(),
-            program: ProgramPort::new(),
+    let glob = GLOBAL_STATE.get().unwrap();
+    match cmd {
+        HWCmd::EndControl => {
+            raspi! {
+                ports.control.set_control(false);
+            }
+            *glob.hw_state.write().unwrap() = HWState::Regular;
+            glob.set_state(ItpState::Uncontrolled(0));
+        }
+        HWCmd::StartControl => {
+            raspi! {
+                ports.control.set_control(true);
+            }
+            *glob.hw_state.write().unwrap() = HWState::Regular;
+            glob.set_state(ItpState::Idle);
+        }
+        HWCmd::Program => {
+            raspi! {{
+                ports.control.set_control(false);
+                ports.program.write_program(&**glob.full_code.read().unwrap());
+                ports.control.set_control(true);
+            }}
+        }
+        HWCmd::StartRun(paused) => {
+            raspi! {{
+                ports.control.set_control(false);
+                ports.program.write_program(&**glob.full_code.read().unwrap());
+                ports.control.set_control(true);
+                ports.control.reset();
+            }}
+            // HW: control -> low
+            // HW: program()
+            // HW: control -> high
+            // HW: control reset -> high -> low
+            glob.set_state(ItpState::Startup);
+            // wait for arbitrary startup
+            thread::sleep(Duration::from_secs(3));
+            glob.itp_started(paused);
+        }
+        HWCmd::ExecStep(count, inc_pc) => {
+            // HW: io betrachten
+            // HW: control clock -> high -> low
+            // HW: schauen ob neuer i/o state existiert
+            let mut state = glob.state.write().unwrap();
+            for i in 0..count {
+                match *state {
+                    ItpState::Running { ref mut run, .. } => {
+                        raspi! {{
+                            ports.handle_io(|| {
+                                *run.inp.get(run.ic).unwrap_or(&0)
+                            });
+                            ports.control.step();
+                        }}
+                        let old_out_len = run.out.len();
+                        if run.jumping.is_none() && run.pc < run.code.len() {
+                            let hw_state = match run.code[run.pc] {
+                                BFCommand::In => HWState::WaitInput,
+                                BFCommand::Out => HWState::OutputReady,
+                                _ => HWState::Regular, 
+                            };
+                            *glob.hw_state.write().unwrap() = hw_state;
+                        }
+                        let finished = run.step();
+                        if i + 1 < count || inc_pc {
+                            run.pc += 1;
+                        }
+                        *glob.last_change.state.write().unwrap() = Instant::now();
+                        if old_out_len != run.out.len() {
+                            glob.set_output(String::from_utf8_lossy(&run.out).into_owned());
+                        }
+                        if finished {
+                            drop(state);
+                            *glob.hw_state.write().unwrap() = HWState::Regular;
+                            glob.set_state(ItpState::Idle);
+                            println!("run finished");
+                            break;
+                        }
+                    }
+                    _ => eprintln!("cannot execute step if itp is not running"),
+                }
+            }
+        }
+        HWCmd::Reset => {
+            // control reset -> high -> low
+            glob.set_state(ItpState::Idle);
         }
     }
 }
