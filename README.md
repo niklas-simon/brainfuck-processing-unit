@@ -43,16 +43,20 @@ Niklas Pein (G220093PI), Bernhard Lindner (G220360PI)
     - Etc.
 ## Entwicklungsschritte
 - [x] Konzepterstellung Interpreter in Logisim
-- [ ] Entwicklung Schaltkreis-Diagramm zur Aufstellung einer Teilliste
-- [ ] Aufbau aller von Logisim bereitgestellten Komponenten auf Breadboard
-    - [ ] RAM (SRAM)
-    - [ ] Zähler
-    - [ ] ROM (EEPROM)
-    - [ ] Etc.
-- [ ] Aufbau Interpreter auf Breadboards
-- [ ] Entwicklung Interpreter PCB
+- [x] Entwicklung Schaltkreis-Diagramm zur Aufstellung einer Teilliste
+- [ ] Aufbau Segmente aus Schaltkreis-Diagramm auf Breadboard
+    - [x] Display 
+    - [ ] ROM (EEPROM) (8h)
+    - [ ] RAM (SRAM) (8h)
+    - [ ] Jump Unit (8h)
+    - [ ] Control Unit (8h)
+    - [ ] Zusammenfügen (16h)
+- [ ] Entwicklung Interpreter PCB (8h)
 - [ ] Entwicklung I/O-Manager
-- [ ] Entwicklung Digital Twin
+    - [x] Oberfläche
+    - [ ] Hardware-Integration (16h)
+- [x] Entwicklung Digital Twin
+
 ## Spezifikationen
 ### Programmierung
 - 4 Pin Port
