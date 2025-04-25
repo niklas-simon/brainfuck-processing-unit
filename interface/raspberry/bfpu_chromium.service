@@ -1,0 +1,14 @@
+[Unit]
+Description=Start Chromium that whill display BFPU-Client
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=pi
+ExecStart=chromium-browser --kiosk http://localhost
+
+[Install]
+WantedBy=multi-user.target

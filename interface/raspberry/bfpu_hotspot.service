@@ -1,0 +1,15 @@
+[Unit]
+Description=Start Hotspot with ssid=BFPU and password=brainfuck
+After=network.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=oneshot
+RestartSec=1
+User=root
+RemainAfterExit=yes
+ExecStart=nmcli device wifi hotspot ssid BFPU password brainfuck
+ExecStop=nmcli device wifi off
+
+[Install]
+WantedBy=multi-user.target

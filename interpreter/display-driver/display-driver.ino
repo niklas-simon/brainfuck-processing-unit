@@ -12,8 +12,8 @@ void setup()
   DDRD = 0xff;
   // 8-13: output
   DDRB = 0b111111;
-  // A0-A5: output
-  DDRC = 0b111111;
+  // A0-A3: input | A4-A5: output
+  DDRC = 0b110000;
 }
 
 void loop()
@@ -33,6 +33,4 @@ void loop()
   show_digit = (show_digit + 1) % 10;
   // increment read_digit for next cycle
   read_digit = (read_digit + 1) % 10;
-  
-  delay(1000);
 }

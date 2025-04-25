@@ -1,0 +1,15 @@
+[Unit]
+Description=Start Chromium that whill display BFPU-Client
+After=network.target
+StartLimitIntervalSec=0
+Wants=bfpu_chromium.service bfpu_hotspot.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=1
+User=root
+ExecStart=cd /etc/bfpud && ./bf_itp 2>&1 | tee -a /var/log/bfpu.log
+
+[Install]
+WantedBy=multi-user.target
